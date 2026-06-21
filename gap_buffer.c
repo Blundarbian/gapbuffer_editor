@@ -17,12 +17,10 @@ typedef struct gapbuffer{
 gb *initgapbuffer(int size);
 void freegapbuffer(gb *buf);
 
-void printbuffer(gb *buf);
-
-void insertchar(gb *buf, char c);
-void expandbuffer(gb *buf);
-
-void deletechar(gb *buf, char c);
+void printbuffer(gb *buf);		// basic
+void insertchar(gb *buf, char c);	// DONE 
+void expandbuffer(gb *buf);		// todo
+void deletechar(gb *buf, char c);	// todo
 
 gb *initgapbuffer(int size) 
 {
@@ -79,6 +77,11 @@ void insertchar(gb *buf, char c)
 
 	*(buf->startgap++) = c;
 	buf->gapsize--;
+}
+
+void expandbuffer(gb *buf) 
+{
+
 }
 
 void deletechar(gb *buf, char c)
