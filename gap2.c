@@ -77,7 +77,7 @@ gap_buffer *copyfiletobuffer(char *name)
 		return NULL;
 	}
 
-	size_t size = ftell(fp);
+	long size = ftell(fp);
 	if (size < 0) 
 	{
 		fclose(fp);
@@ -104,7 +104,12 @@ gap_buffer *copyfiletobuffer(char *name)
 
 int main(int argc, char *argv[]) 
 {
-	gap_buffer *gb = copyfiletobuffer(argv[1]);
+	gap_buffer *gb;
+
+	if (argc == 2)
+		gb = copyfiletobuffer(argv[1]);
+	else
+		gb = initgapbuffer(0);		// empty file
 
 	printf("%zu size\n", gb->bsize);
 	printf("%c first char\n", *(gb->endgap++));
