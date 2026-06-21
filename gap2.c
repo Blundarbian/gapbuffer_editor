@@ -27,7 +27,8 @@ bool can_be_up_shift(gap_buffer *gb);		// DONE
 bool shift_down(gap_buffer *gb);		// DONE
 bool shift_up(gap_buffer *gb);			// DONE
 
-bool delete(gap_buffer *gb);
+bool delete(gap_buffer *gb);			// DONE
+bool insert(gap_buffer *gb);			// to-do
 
 gap_buffer *initgapbuffer(size_t size)
 {
@@ -73,7 +74,7 @@ void printbuffer(gap_buffer *gb)
 
 gap_buffer *copyfiletobuffer(char *name)
 {
-	FILE *fp = fopen(name, "r+");
+	FILE *fp = fopen(name, "r");
 	if (!fp) 
 		return NULL;
 
