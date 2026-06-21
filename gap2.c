@@ -33,17 +33,17 @@ bool insert(gap_buffer *gb);			// to-do
 gap_buffer *initgapbuffer(size_t size)
 {
 	gap_buffer *gb;
-	gb = malloc(sizeof(gap_buffer));
+	gb = malloc(sizeof(gap_buffer));				// alloc for gap_buffer struct
 	if (!gb) return NULL;
 
-	gb->buffer = calloc(size + GAP_SIZE, sizeof(char));
+	gb->buffer = calloc(size + GAP_SIZE, sizeof(char));		// alloc for buffer array
 	if (!(gb->buffer)) 
 	{
 		free(gb);
 		return NULL;
 	}
 
-	gb->index = GAP_SIZE + size - 1;// gap + file size -1
+	gb->index = GAP_SIZE + size - 1;// gap + file size -1	
 
 	gb->gap = gb->buffer;		// gap ptr is first index start
 	gb->gapsize = GAP_SIZE;		// gap starts at gap size
@@ -74,30 +74,30 @@ void printbuffer(gap_buffer *gb)
 
 gap_buffer *copyfiletobuffer(char *name)
 {
-	FILE *fp = fopen(name, "r");
+	FILE *fp = fopen(name, "r");		
 	if (!fp) 
 		return NULL;
 
-	if (fseek(fp, 0, SEEK_END))
+	if (fseek(fp, 0, SEEK_END))	// fseek check 
 	{
 		fclose(fp);
 		return NULL;
 	}
 
-	long size = ftell(fp);
+	long size = ftell(fp);		// file length ftell check
 	if (size < 0) 
 	{
 		fclose(fp);
 		return NULL;
 	}
-	rewind(fp);
+	rewind(fp);			// rewind from EOF to begin copying input
 
 
-	gap_buffer *gb = initgapbuffer(size);
+	gap_buffer *gb = initgapbuffer(size);		// initilize gap_buffer based off file size
 
 	int c;
-	size_t pos = gb->gapsize;
-	while (((c = getc(fp)) != EOF) && pos < gb->index)
+	size_t pos = gb->gapsize;				// start copying after gap
+	while (((c = getc(fp)) != EOF) && pos < gb->index)	// gap is in initilized in the front of the buffer
 	{
 		gb->buffer[pos] = c;
 		pos++;
