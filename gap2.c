@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-size_t GAP_SIZE = 5;
+const size_t GAP_SIZE = 5;
 
 typedef struct gb_structure {
 
@@ -28,7 +28,10 @@ bool shift_down(gap_buffer *gb);		// DONE
 bool shift_up(gap_buffer *gb);			// DONE
 
 bool delete(gap_buffer *gb);			// DONE
-bool insert(gap_buffer *gb);			// to-do
+bool insert(gap_buffer *gb, char c);		// DONE
+bool expandbuffer(gap_buffer *gb);		// DONE
+
+long findword(gap_buffer *gb, char *word);
 
 gap_buffer *initgapbuffer(size_t size)
 {
@@ -97,7 +100,7 @@ gap_buffer *copyfiletobuffer(char *name)
 
 	int c;
 	size_t pos = gb->gapsize;				// start copying after gap
-	while (((c = getc(fp)) != EOF) && pos < gb->index)	// gap is in initilized in the front of the buffer
+	while (((c = getc(fp)) != EOF) && pos <= gb->index)	// gap is in initilized in the front of the buffer
 	{
 		gb->buffer[pos] = c;
 		pos++;
@@ -148,7 +151,7 @@ bool shift_up(gap_buffer *gb)
 
 bool delete(gap_buffer *gb)
 {
-	if (gb->gapsize == 0 || gb->gap == gb->buffer)	// nothing to delete or at start
+	if (gb->gap == gb->buffer)	// at start
 		return false;
 
 	gb->gap--;
@@ -157,6 +160,66 @@ bool delete(gap_buffer *gb)
 	gb->gapsize++;
 
 	return true;
+}
+
+bool insert(gap_buffer *gb, char c)
+{
+	if (gb->gapsize == 1) {
+		if (!(expandbuffer(gb)))
+			return false;
+	}
+
+	*gb->gap = c;
+	gb->gap++;
+	gb->gapsize--;
+	
+	return true;
+}
+
+
+bool expandbuffer(gap_buffer *gb) 
+{
+	size_t offset = gb->gap - gb->buffer;	// buf to gap start
+	size_t endset = gb->endgap - gb->buffer;// buf to end gap stop
+
+	size_t oldsize = gb->index + 1;		// old size
+	size_t newsize = oldsize + GAP_SIZE;	// new size
+
+	char *nbuf = realloc(gb->buffer, newsize);
+	if (!nbuf) return false;
+
+	gb->buffer = nbuf;			
+	gb->gap = gb->buffer + offset;		// gap set back to start
+	gb->endgap = gb->buffer + endset;	// endgap set back
+
+	size_t tail = oldsize - endset;		// tail of chars after realloc
+	memmove(gb->endgap + GAP_SIZE, gb->endgap, tail);
+	// move tail '\0' from realloc to positions to 'fuse' into engap
+	// idk if memmove is the fastest function to do this...
+	//
+	/* buf->[_______gap[]end____]		out of space
+	 * buf->[_______gap[]end____0000000]	realloc more space
+	 * buf->[_______gap[0000000]end____] 	move newspace to be used by pointers
+	 */
+	
+	gb->gapsize += GAP_SIZE;		// incriment counters
+	gb->index += GAP_SIZE;
+	gb->endgap += GAP_SIZE;
+
+	return true;
+}
+								
+long findword(gap_buffer *gb, char *word)
+{
+	char *pos = strstr(gb->buffer, word);
+	if (pos)
+		return pos - gb->buffer;
+
+	pos = strstr(gb->endgap, word);
+	if (pos)
+		return (pos - gb->endgap) + (gb->gap - gb->buffer);
+
+	return -1;
 }
 
 int main(int argc, char *argv[]) 
@@ -168,18 +231,14 @@ int main(int argc, char *argv[])
 	else
 		gb = initgapbuffer(0);		// no file
 
-	printf("%zu size\n", gb->index);
-
-	printbuffer(gb);
-	putchar('\n');
-	printf("%zu size of gap\n", gb->gapsize);
-	shift_down(gb);
-	delete(gb);
-	printf("%zu size of gap\n", gb->gapsize);
-	shift_down(gb);
-	shift_down(gb);
-	printbuffer(gb);
-	putchar('\n');
+	printf("found at %ld\n", findword(gb, "Five"));
+	for (int i = 0; i < 12; i++)
+	{
+		insert(gb, 'w');
+		printbuffer(gb);
+		printf("Gapsize %zu\n", gb->gapsize);
+		putchar('\n');
+	}
 
 	return 0;
 }
