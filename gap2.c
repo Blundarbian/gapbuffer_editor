@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-const size_t GAP_SIZE = 5;
+const size_t GAP_SIZE = 4096;	// default gap size
 
 typedef struct gb_structure {
 
@@ -19,7 +19,8 @@ typedef struct gb_structure {
 
 gap_buffer *copyfiletobuffer(char *name); 	// DONE
 gap_buffer *initgapbuffer(size_t size);		// DONE
-void printbuffer(gap_buffer *gb);		// DONE
+void free_gap_buffer(gap_buffer *gb);
+void printbuffer(gap_buffer *gb, bool visible);	// DONE
 
 bool can_be_down_shift(gap_buffer *gb);		// DONE
 bool can_be_up_shift(gap_buffer *gb);		// DONE
@@ -30,8 +31,9 @@ bool shift_up(gap_buffer *gb);			// DONE
 bool delete(gap_buffer *gb);			// DONE
 bool insert(gap_buffer *gb, char c);		// DONE
 bool expandbuffer(gap_buffer *gb);		// DONE
+						
+long findword(gap_buffer *gb, char *word);	// DONE
 
-long findword(gap_buffer *gb, char *word);
 
 gap_buffer *initgapbuffer(size_t size)
 {
@@ -55,15 +57,22 @@ gap_buffer *initgapbuffer(size_t size)
 	return gb;
 }
 
-void printbuffer(gap_buffer *gb)
+
+void printbuffer(gap_buffer *gb, bool visible)
 {
 	char *p = gb->buffer;
 	while (p <= gb->buffer + gb->index)
 	{
 		if (p == gb->gap)	
 		{
-			for (size_t i = 0; i < gb->gapsize; i++)
-				putchar('_');
+			if (visible)
+			{
+				for (size_t i = 0; i < gb->gapsize; i++)
+					putchar('_');
+			}
+			else 
+				putchar('|');
+
 			p = gb->endgap;
 		}
 		else
@@ -72,6 +81,25 @@ void printbuffer(gap_buffer *gb)
 			p++;
 		}
 	}
+}
+
+
+void free_gap_buffer(gap_buffer *gb)
+{
+	if (!gb) 
+		return;	
+
+	if (!(gb->buffer))	
+	{
+		free(gb);
+		gb = NULL;
+		return;
+	}
+
+	free(gb->buffer);
+	gb->buffer = NULL;
+	gb->endgap = NULL;
+	gb->gap = NULL;
 }
 
 
@@ -209,6 +237,7 @@ bool expandbuffer(gap_buffer *gb)
 	return true;
 }
 								
+
 long findword(gap_buffer *gb, char *word)
 {
 	char *pos = strstr(gb->buffer, word);
@@ -222,23 +251,42 @@ long findword(gap_buffer *gb, char *word)
 	return -1;
 }
 
+
 int main(int argc, char *argv[]) 
 {
-	gap_buffer *gb;
+	gap_buffer *gb = NULL;
 
 	if (argc == 2)
 		gb = copyfiletobuffer(argv[1]);	// load file
 	else
 		gb = initgapbuffer(0);		// no file
+	
+	if (!gb) 
+		return -1;
 
-	printf("found at %ld\n", findword(gb, "Five"));
-	for (int i = 0; i < 12; i++)
+	int c;
+	while ((c = getchar()) != EOF)
 	{
-		insert(gb, 'w');
-		printbuffer(gb);
-		printf("Gapsize %zu\n", gb->gapsize);
-		putchar('\n');
+		printbuffer(gb, false);
+		switch (c)
+		{
+			case '1' :
+				shift_up(gb);
+				break;
+			case '2' :
+				shift_down(gb);
+				break;
+			case '3' :
+				delete(gb);
+				break;
+			default:
+				if (c != '\n')
+					insert(gb, c);
+				break;
+		}
 	}
+
+	free_gap_buffer(gb);
 
 	return 0;
 }
