@@ -1,0 +1,34 @@
+#ifndef GAP_BUFFER_H
+#define GAP_BUFFER_H
+
+typedef struct gb_structure {
+
+	char *buffer;		// buffer + gap
+	size_t index;		// buffer size - 1 for index
+				//
+	char *gap;		// ptr to gap
+	size_t gapsize;		// size of gap
+	char *endgap;		// ptr to end of gap
+
+} gap_buffer;
+
+gap_buffer *copyfiletobuffer(char *name); 	
+gap_buffer *initgapbuffer(size_t size);	
+void free_gap_buffer(gap_buffer *gb);
+void printbuffer(gap_buffer *gb, bool visible);	
+
+bool can_be_down_shift(gap_buffer *gb);		
+bool can_be_up_shift(gap_buffer *gb);		
+
+bool shift_down(gap_buffer *gb);		
+bool shift_up(gap_buffer *gb);			
+
+bool delete(gap_buffer *gb);			
+bool insert(gap_buffer *gb, char c);		
+bool expandbuffer(gap_buffer *gb);		
+						
+long findword(gap_buffer *gb, char *word);	
+size_t nextword_up(gap_buffer *gb);	
+size_t nextword_down(gap_buffer *gb);
+					
+#endif

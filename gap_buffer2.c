@@ -1,38 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdbool.h>
+#include "gap_buffer2.h"
 
-const size_t GAP_SIZE = 4096;	// default gap size
-
-typedef struct gb_structure {
-
-	char *buffer;		// buffer + gap
-	size_t index;		// buffer size - 1 for index
-				//
-	char *gap;		// ptr to gap
-	size_t gapsize;		// size of gap
-	char *endgap;		// ptr to end of gap
-
-} gap_buffer;
-
-
-gap_buffer *copyfiletobuffer(char *name); 	// DONE
-gap_buffer *initgapbuffer(size_t size);		// DONE
-void free_gap_buffer(gap_buffer *gb);
-void printbuffer(gap_buffer *gb, bool visible);	// DONE
-
-bool can_be_down_shift(gap_buffer *gb);		// DONE
-bool can_be_up_shift(gap_buffer *gb);		// DONE
-
-bool shift_down(gap_buffer *gb);		// DONE
-bool shift_up(gap_buffer *gb);			// DONE
-
-bool delete(gap_buffer *gb);			// DONE
-bool insert(gap_buffer *gb, char c);		// DONE
-bool expandbuffer(gap_buffer *gb);		// DONE
-						
-long findword(gap_buffer *gb, char *word);	// DONE
+#define GAP_SIZE 4096		// default gap size
 
 
 gap_buffer *initgapbuffer(size_t size)
@@ -146,12 +119,14 @@ bool can_be_up_shift(gap_buffer *gb)
 	return false;
 }
 
+
 bool can_be_down_shift(gap_buffer *gb)
 {	
 	if (gb->endgap < (gb->buffer + gb->index))
 		return true;
 	return false;
 }
+
 
 bool shift_down(gap_buffer *gb)
 {
@@ -165,6 +140,7 @@ bool shift_down(gap_buffer *gb)
 	return true;
 }
 
+
 bool shift_up(gap_buffer *gb)
 {
 	if (!can_be_up_shift(gb))
@@ -176,6 +152,7 @@ bool shift_up(gap_buffer *gb)
 	
 	return true;
 }
+
 
 bool delete(gap_buffer *gb)
 {
@@ -189,6 +166,7 @@ bool delete(gap_buffer *gb)
 
 	return true;
 }
+
 
 bool insert(gap_buffer *gb, char c)
 {
@@ -252,6 +230,58 @@ long findword(gap_buffer *gb, char *word)
 }
 
 
+size_t nextword_up(gap_buffer *gb)	
+{
+	long cursor = (gb->gap - gb->buffer) - 1;
+	size_t pos = 0;
+
+	if (gb->buffer[cursor] == ' ') 
+	{
+		while (gb->buffer[cursor] == ' ' && cursor >= 0) 
+		{
+			shift_up(gb);
+			pos++;
+			cursor--;
+		}
+		return pos;
+	}
+	
+	while (gb->buffer[cursor] != ' ' && cursor >= 0)
+	{
+		shift_up(gb);
+		pos++;
+		cursor--;
+	}
+	return pos;
+}
+
+
+size_t nextword_down(gap_buffer *gb)	// TODO
+{
+	size_t cursor = gb->endgap - gb->buffer;
+	size_t pos = 0;
+
+	if (gb->buffer[cursor] == ' ') 
+	{
+		while (gb->buffer[cursor] == ' ' && cursor < gb->index) 
+		{
+			shift_down(gb);
+			pos++;
+			cursor++;
+		}
+		return pos;
+	}
+	
+	while (gb->buffer[cursor] != ' ' && cursor < gb->index)
+	{
+		shift_down(gb);
+		pos++;
+		cursor++;
+	}
+	return pos;
+}
+
+/*
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;
@@ -279,6 +309,12 @@ int main(int argc, char *argv[])
 			case '3' :
 				delete(gb);
 				break;
+			case 'b' :
+				nextword_up(gb);
+				break;
+			case 'f' :
+				nextword_down(gb);
+				break;
 			default:
 				if (c != '\n')
 					insert(gb, c);
@@ -287,6 +323,7 @@ int main(int argc, char *argv[])
 	}
 
 	free_gap_buffer(gb);
-
 	return 0;
 }
+*/
+
