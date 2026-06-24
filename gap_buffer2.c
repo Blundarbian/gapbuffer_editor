@@ -215,7 +215,7 @@ bool expandbuffer(gap_buffer *gb)
 	return true;
 }
 
-
+/*
 bool move_findword(gap_buffer *gb, char *word)		// TODO
 {
 	size_t dex; 
@@ -238,7 +238,7 @@ bool delete_word_up(gap_buffer *gb)			// TODO
 		return false;		
 
 }
-
+*/
 
 size_t move_nextword_up(gap_buffer *gb)	
 {
