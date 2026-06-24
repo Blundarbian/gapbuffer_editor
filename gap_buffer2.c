@@ -291,7 +291,7 @@ size_t move_nextword_down(gap_buffer *gb)
 	return pos;
 }
 
-
+/*
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;
@@ -338,4 +338,4 @@ int main(int argc, char *argv[])
 	free_gap_buffer(gb);
 	return 0;
 }
-
+*/
