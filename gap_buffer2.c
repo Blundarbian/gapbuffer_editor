@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <stdbool.h>
 #include "gap_buffer2.h"
 
@@ -154,17 +153,18 @@ bool shift_up(gap_buffer *gb)
 }
 
 
-bool delete(gap_buffer *gb)
+char delete(gap_buffer *gb)
 {
 	if (gb->gap == gb->buffer)	// at start
-		return false;
+		return '\0';
 
 	gb->gap--;
+	char del = *gb->gap;
 	*gb->gap = '\0'; 
 
 	gb->gapsize++;
 
-	return true;
+	return del;
 }
 
 
@@ -214,23 +214,33 @@ bool expandbuffer(gap_buffer *gb)
 
 	return true;
 }
-								
 
-long findword(gap_buffer *gb, char *word)
+
+bool move_findword(gap_buffer *gb, char *word)		// TODO
 {
-	char *pos = strstr(gb->buffer, word);
-	if (pos)
-		return pos - gb->buffer;
+	size_t dex; 
+	size_t cursor = gb->gap - gb->buffer;
 
-	pos = strstr(gb->endgap, word);
-	if (pos)
-		return (pos - gb->endgap) + (gb->gap - gb->buffer);
+	return false;
+}
 
-	return -1;
+bool delete_word_down(gap_buffer *gb)			// TODO
+{
+
+}
+
+bool delete_word_up(gap_buffer *gb)			// TODO
+{
+	long corsor = (gb->gap - gb->buffer) - 1;
+	size_t shift = 0;
+	
+	if ((shift = move_nextword_up(gb) == 0))
+		return false;		
+
 }
 
 
-size_t nextword_up(gap_buffer *gb)	
+size_t move_nextword_up(gap_buffer *gb)	
 {
 	long cursor = (gb->gap - gb->buffer) - 1;
 	size_t pos = 0;
@@ -256,7 +266,7 @@ size_t nextword_up(gap_buffer *gb)
 }
 
 
-size_t nextword_down(gap_buffer *gb)	// TODO
+size_t move_nextword_down(gap_buffer *gb)
 {
 	size_t cursor = gb->endgap - gb->buffer;
 	size_t pos = 0;
@@ -281,7 +291,7 @@ size_t nextword_down(gap_buffer *gb)	// TODO
 	return pos;
 }
 
-/*
+
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;
@@ -310,10 +320,13 @@ int main(int argc, char *argv[])
 				delete(gb);
 				break;
 			case 'b' :
-				nextword_up(gb);
+				move_nextword_up(gb);
 				break;
 			case 'f' :
-				nextword_down(gb);
+				move_nextword_down(gb);
+				break;
+			case 's' :
+				move_findword(gb, "Five");
 				break;
 			default:
 				if (c != '\n')
@@ -325,5 +338,4 @@ int main(int argc, char *argv[])
 	free_gap_buffer(gb);
 	return 0;
 }
-*/
 

@@ -23,12 +23,16 @@ bool can_be_up_shift(gap_buffer *gb);
 bool shift_down(gap_buffer *gb);		
 bool shift_up(gap_buffer *gb);			
 
-bool delete(gap_buffer *gb);			
+char delete(gap_buffer *gb);			
 bool insert(gap_buffer *gb, char c);		
 bool expandbuffer(gap_buffer *gb);		
+
+bool delete_word_up(gap_buffer *gb);
+bool delete_word_down(gap_buffer *gb);
 						
-long findword(gap_buffer *gb, char *word);	
-size_t nextword_up(gap_buffer *gb);	
-size_t nextword_down(gap_buffer *gb);
+// Does not find words spanning across the gap... need to rewrite
+bool move_findword(gap_buffer *gb, char *word);		// TODO
+size_t move_nextword_up(gap_buffer *gb);	
+size_t move_nextword_down(gap_buffer *gb);
 					
 #endif
