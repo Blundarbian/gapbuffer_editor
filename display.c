@@ -7,14 +7,10 @@
 // enum to hold init pairs
 enum { PAIR_ERR = 1, PAIR_BW, PAIR_WB, PAIR_BR };
 
-WINDOW *create_main_window(int cords[]);
-WINDOW *create_bar_window(int cords[]);
-WINDOW *create_menu_window(int cords[]);
-
 int main(int argc, char *argv[])
 {	
 	gap_buffer *gb;
-	WINDOW *main, *bar, *menu;
+	WINDOW *bar; 
 
 	initscr();
 	noecho();
@@ -25,7 +21,7 @@ int main(int argc, char *argv[])
 
 	if (!has_colors()) 
 	{
-		fprintf(stderr, "error: terminal does not have color\n");
+		fprintf(stderr, "error: terminal does not have color");
 		endwin();
 		return 1;
 	}
@@ -47,11 +43,11 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-
-	addstr("This is a testing\n");
+	bkgd(COLOR_PAIR(PAIR_BW));			
+	mvaddstr(1, 1, "This is a testing\n");
+	box(stdscr, 0, 0);
 	refresh();
 	getch();
-
 
 	endwin();
 	return 0;
