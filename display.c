@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 		endwin();
 		return 1;
 	}
+
 	start_color();
 	init_pair(PAIR_ERR, COLOR_RED, COLOR_WHITE);	// name, background, text color
 	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
@@ -44,7 +45,9 @@ int main(int argc, char *argv[])
 		gb = copyfiletobuffer(argv[1]);
 	}
 	else
+	{
 		gb = initgapbuffer(0);
+	}
 	
 	if (!gb)					// gap_buffer2 check
 	{
@@ -63,13 +66,12 @@ int main(int argc, char *argv[])
 	}
 
 	bkgd(COLOR_PAIR(PAIR_WB));			
-	splash_screen();
+	int c = splash_screen();
 
 	wbkgd(win, COLOR_PAIR(PAIR_BB));
 	wmove(win, 0, 0);
 	waddstr(win, gb->endgap);
 
-	//box(stdscr, 0, 0);
 
 	refresh();
 	wrefresh(win);
@@ -92,7 +94,6 @@ char splash_screen()
 	pos++;
 	center_rowaddstr(pos++, "Created by me!");
 	center_rowaddstr(pos++, "choose and option : o (open file), n (new file), q (quit)");
-	refresh();
 
 	char message[15] = "Key pressed (";		// show key if incorect option is pressed
 	while (c != 'o' && c != 'n' && c != 'q')
