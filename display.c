@@ -7,7 +7,8 @@
 // enum to hold init pairs
 enum { PAIR_ERR = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 
-int splash_screen();
+char splash_screen();
+void resize_check();	
 void center_rowaddstr(int row, char *title);
 
 int main(int argc, char *argv[])
@@ -35,8 +36,13 @@ int main(int argc, char *argv[])
 	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
 	init_pair(PAIR_BB, COLOR_CYAN, COLOR_BLACK);
 
-	if (argc == 2)					// file in argument list
+	resize_check();			// check srceen size
+	getmaxyx(stdscr, maxy, maxx);
+
+	if (argc == 2) 	// file in argument list 
+	{		
 		gb = copyfiletobuffer(argv[1]);
+	}
 	else
 		gb = initgapbuffer(0);
 	
@@ -56,17 +62,10 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	//splash_screen();
-	center_rowaddstr(4, "Best programer ever!!!");
-	refresh();
-	getch();
-
 	bkgd(COLOR_PAIR(PAIR_WB));			
-	wbkgd(win, COLOR_PAIR(PAIR_BB));
-	wrefresh(win);
-	refresh();
-	getch();
+	splash_screen();
 
+	wbkgd(win, COLOR_PAIR(PAIR_BB));
 	wmove(win, 0, 0);
 	waddstr(win, gb->endgap);
 
@@ -80,10 +79,42 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-int splash_screen() 
-{
 
+char splash_screen() 
+{
+	int c = '\0';
+	int height = getmaxy(stdscr);
+	int pos = height / 4;
+	
+	curs_set(0);
+	center_rowaddstr(pos++, "Welcome to my Text editor!");
+	center_rowaddstr(pos++, "This is a test of a menu screen");
+	pos++;
+	center_rowaddstr(pos++, "Created by me!");
+	center_rowaddstr(pos++, "choose and option : o (open file), n (new file), q (quit)");
+	refresh();
+
+	char message[15] = "Key pressed (";		// show key if incorect option is pressed
+	while (c != 'o' && c != 'n' && c != 'q')
+	{
+		c = getch();
+		message[13] = c;
+		message[14] = ')';
+		message[15] = '\0';
+
+		attron(A_BOLD);
+		center_rowaddstr(pos++, message);	// print concat key string
+		attroff(A_BOLD);
+
+		move(pos--, 0);
+		clrtoeol();			// move to front of line, clear, wait 50ms for next keypress
+		napms(50);
+	}
+
+	curs_set(1);
+	return c;
 }
+
 
 void center_rowaddstr(int row, char *title)
 {
@@ -95,5 +126,25 @@ void center_rowaddstr(int row, char *title)
 	indent = (width - len) / 2;
 
 	mvaddstr(row, indent, title);
-	refresh();	
+	refresh();
+}
+
+
+void resize_check() 
+{
+	int y = LINES, x = COLS;
+	while (y < 40 || x < 40)
+	{
+		getmaxyx(stdscr, y, x);
+		bkgd(COLOR_PAIR(PAIR_BR));
+		move(0, 0);
+		attron(A_BLINK);
+		addstr("Please resize window\n");
+		addstr("Must be > 40\n");
+		attroff(A_BLINK);
+		refresh();
+		getch();
+	}
+	clear();
+	refresh();
 }
