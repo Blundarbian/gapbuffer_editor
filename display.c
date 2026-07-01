@@ -4,13 +4,6 @@
 #include <string.h>
 #include "gap_buffer2.h"
 
-// enum to hold init pairs
-enum { PAIR_ERR = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
-
-char splash_screen();
-void resize_check();	
-void center_rowaddstr(int row, char *title);
-
 int main(int argc, char *argv[])
 {	
 	gap_buffer *gb;
