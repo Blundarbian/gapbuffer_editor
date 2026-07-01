@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gap_buffer2.h"
+#include "display.h"
 
 int main(int argc, char *argv[])
 {	
