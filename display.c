@@ -11,12 +11,11 @@ enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
 
-void color_init();					// DONE : start color pairs
+void check_color();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
-
-
+void modeline(char mode, char c, int x, int y, size_t pos, gap_buffer *gb); 
 
 int main(int argc, char *argv[])
 {	
@@ -32,7 +31,7 @@ int main(int argc, char *argv[])
 
 	getmaxyx(stdscr, maxy, maxx);
 
-	color_init();
+	check_color();
 
 	check_resize();			// check srceen size
 	getmaxyx(stdscr, maxy, maxx);
@@ -70,20 +69,23 @@ int main(int argc, char *argv[])
 	bkgd(COLOR_PAIR(PAIR_BW));
 	wbkgd(win, COLOR_PAIR(PAIR_RW));
 
-	int ccount = (maxy - 2) * (maxx - 2);
+	int bufcount = 0;
+	int endcount = (maxy - 2) * (maxx - 2);
 	int x, y;
+	size_t pos = 0;
 	x = y = 0;
 
-	insert_c(gb, '$');
-	insert_c(gb, '$');
-	insert_c(gb, '$');
-	insert_c(gb, '$');
-	insert_c(gb, '$');
-	x+=5;
-
-	waddnstr(win, gb->buffer, ccount);
-	waddnstr(win, gb->endgap, ccount); 
+	shift_down(gb);
+	shift_down(gb);
+	shift_down(gb);
+	shift_down(gb);
+	x+=4;
+	bufcount+=4;
+	waddnstr(win, gb->buffer, bufcount);
+	waddnstr(win, gb->endgap, endcount); 
 	wmove(win, y, x);
+	modeline('i', getch(), x, y, pos, gb);
+
 	refresh();
 	wrefresh(win);
 	getch();
@@ -92,6 +94,14 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+
+void modeline(char mode, char c, int x, int y, size_t pos, gap_buffer *gb) 
+{
+	move(LINES - 1, 1);
+	clrtoeol();
+	printw("mode : %s ", (mode == 'n') ? "[normal]" : "[insert]");
+	printw("X: %d, Y: %d, %zu%% %c", x, y, pos / (gb->index + 1), c);
+}
 
 char splash_screen() 
 {
@@ -143,7 +153,7 @@ void center_rowaddstr(int row, char *title)
 }
 
 
-void color_init()
+void check_color()
 {
 	if (!has_colors()) 
 	{
