@@ -5,6 +5,16 @@
 #include "gap_buffer2.h"
 #include "display.h"
 
+enum { PAIR_ERR = 0, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
+
+char splash_screen();					// DONE : welcome screen when no file is provided 
+void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
+
+void check_colors();					// DONE	: exit if color not supported
+void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
+void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
+void check_window(WINDOW *win);				// DONE	: exit if window dne
+
 int main(int argc, char *argv[])
 {	
 	gap_buffer *gb;
@@ -17,21 +27,15 @@ int main(int argc, char *argv[])
 	int maxy, maxx;
 	getmaxyx(stdscr, maxy, maxx);
 
-	if (!has_colors()) 				// color check
-	{
-		fprintf(stderr, "error: terminal does not have color");
-		endwin();
-		return 1;
-	}
-
-	start_color();
-	init_pair(PAIR_ERR, COLOR_RED, COLOR_WHITE);	// name, background, text color
+	check_colors();
+	start_color();					
+	init_pair(PAIR_ERR, COLOR_RED, COLOR_WHITE);	// name, text color, background
 	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
 	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
-	init_pair(PAIR_BB, COLOR_CYAN, COLOR_BLACK);
+	init_pair(PAIR_BB, COLOR_WHITE, COLOR_BLUE);
 
-	resize_check();			// check srceen size
+	check_resize();			// check srceen size
 	getmaxyx(stdscr, maxy, maxx);
 
 	if (argc == 2) 	// file in argument list 
@@ -42,32 +46,18 @@ int main(int argc, char *argv[])
 	{
 		gb = initgapbuffer(0);
 	}
-	
-	if (!gb)					// gap_buffer2 check
-	{
-		fprintf(stderr, "error: gap_buffer cannot be created");
-		endwin();
-		return 1;
-	}
 
+	check_gapbuffer(gb);
 
 	win = newwin(maxy - 2, maxx - 2, 1, 1);		// window check
-	if (!win)
-	{
-		fprintf(stderr, "error: window win cannot be created");
-		endwin();
-		return 1;
-	}
+	check_window(win);
 
-	bkgd(COLOR_PAIR(PAIR_WB));			
-	int c = splash_screen();
-
-	wbkgd(win, COLOR_PAIR(PAIR_BB));
-	wmove(win, 0, 0);
-	waddstr(win, gb->endgap);
-
-
+	bkgd(COLOR_PAIR(PAIR_WB));
+	splash_screen();
 	refresh();
+
+	wbkgd(win, COLOR_PAIR(PAIR_ERR));
+	waddstr(win, "Hello! World!\n");
 	wrefresh(win);
 	getch();
 
@@ -79,29 +69,32 @@ int main(int argc, char *argv[])
 char splash_screen() 
 {
 	int c = '\0';
-	int height = getmaxy(stdscr);
+	int height, width;
+	getmaxyx(stdscr, height, width);
 	int pos = height / 4;
-	
+
 	curs_set(0);
 	center_rowaddstr(pos++, "Welcome to my Text editor!");
 	center_rowaddstr(pos++, "This is a test of a menu screen");
-	pos++;
 	center_rowaddstr(pos++, "Created by me!");
-	center_rowaddstr(pos++, "choose and option : o (open file), n (new file), q (quit)");
+	pos++;
 
-	char message[15] = "Key pressed (";		// show key if incorect option is pressed
-	while (c != 'o' && c != 'n' && c != 'q')
+	attron(A_UNDERLINE);
+	center_rowaddstr(pos++, "Choose an option");
+	attroff(A_UNDERLINE);
+	pos++;
+
+	center_rowaddstr(pos++, "\tc (change colors)");
+	center_rowaddstr(pos++, "\to (open file)    ");
+	center_rowaddstr(pos++, "\tn (new file)     ");
+	center_rowaddstr(pos++, "\tq (quit)         ");
+
+	pos++;
+	while (c != 'c' && c != 'o' && c != 'n' && c != 'q')
 	{
-		c = getch();
-		message[13] = c;
-		message[14] = ')';
-		message[15] = '\0';
-
 		attron(A_BOLD);
-		center_rowaddstr(pos++, message);	// print concat key string
+		mvaddch(pos, width / 2, c = getch());
 		attroff(A_BOLD);
-
-		move(pos--, 0);
 		clrtoeol();			// move to front of line, clear, wait 50ms for next keypress
 		napms(50);
 	}
@@ -125,7 +118,18 @@ void center_rowaddstr(int row, char *title)
 }
 
 
-void resize_check() 
+void check_colors()
+{
+	if (!has_colors()) 				
+	{
+		endwin();
+		printf("error: terminal does not have color\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
+
+void check_resize() 
 {
 	int y = LINES, x = COLS;
 	while (y < 40 || x < 40)
@@ -141,5 +145,27 @@ void resize_check()
 		getch();
 	}
 	clear();
+	bkgd(COLOR_PAIR(PAIR_BW));
 	refresh();
+}
+
+
+void check_gapbuffer(gap_buffer *gb)
+{
+	if (!gb)					// gap_buffer2 check
+	{
+		endwin();
+		printf("error: gap_buffer cannot be created\n");
+		exit(EXIT_FAILURE);
+	}
+}
+
+void check_window(WINDOW *win)
+{
+	if (!win)
+	{
+		endwin();
+		printf("error: window win cannot be created\n");
+		exit(EXIT_FAILURE);
+	}
 }
