@@ -5,7 +5,7 @@
 #include "gap_buffer2.h"
 #include "display.h"
 
-enum { PAIR_ERR = 0, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
+enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
 	check_colors();
 	start_color();					
-	init_pair(PAIR_ERR, COLOR_RED, COLOR_WHITE);	// name, text color, background
+	init_pair(PAIR_RW, COLOR_RED, COLOR_WHITE);	// name, text color, background
 	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
 	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
@@ -52,11 +52,11 @@ int main(int argc, char *argv[])
 	win = newwin(maxy - 2, maxx - 2, 1, 1);		// window check
 	check_window(win);
 
-	bkgd(COLOR_PAIR(PAIR_WB));
+	bkgd(COLOR_PAIR(PAIR_BW));
 	splash_screen();
 	refresh();
 
-	wbkgd(win, COLOR_PAIR(PAIR_ERR));
+	wbkgd(win, COLOR_PAIR(PAIR_RW));
 	waddstr(win, "Hello! World!\n");
 	wrefresh(win);
 	getch();
