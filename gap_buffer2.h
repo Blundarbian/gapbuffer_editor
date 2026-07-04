@@ -23,8 +23,8 @@ bool can_be_up_shift(gap_buffer *gb);
 bool shift_down(gap_buffer *gb);		
 bool shift_up(gap_buffer *gb);			
 
-char delete(gap_buffer *gb);			
-bool insert(gap_buffer *gb, char c);		
+char delete_c(gap_buffer *gb);			
+bool insert_c(gap_buffer *gb, char c);		
 bool expandbuffer(gap_buffer *gb);		
 
 bool delete_word_up(gap_buffer *gb);

@@ -11,13 +11,18 @@ enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
 
-void check_colors();					// DONE	: exit if color not supported
+void color_init();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
 
+
+
 int main(int argc, char *argv[])
 {	
+	int c, maxy, maxx;
+	char name[NAME_SIZE];
+
 	gap_buffer *gb;
 	WINDOW *win;
 
@@ -25,31 +30,20 @@ int main(int argc, char *argv[])
 	noecho();
 	keypad(stdscr, TRUE);
 
-	int maxy, maxx;
 	getmaxyx(stdscr, maxy, maxx);
 
-	check_colors();
-	start_color();					
-	init_pair(PAIR_RW, COLOR_RED, COLOR_WHITE);	// name, text color, background
-	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
-	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
-	init_pair(PAIR_BB, COLOR_WHITE, COLOR_BLUE);
+	color_init();
 
 	check_resize();			// check srceen size
 	getmaxyx(stdscr, maxy, maxx);
-	int c;
-	char name[NAME_SIZE];
 
 	if (argc == 2) 	// file in argument list 
-	{		
 		gb = copyfiletobuffer(argv[1]);
-	}
 	else
-	{
 		while (1)
 		{
-			c = splash_screen();
+			c = splash_screen();				// TODO : char splash input
+			napms(50);		// nap between input
 			if (c == 'n') 
 			{
 				gb = initgapbuffer(0);
@@ -67,7 +61,6 @@ int main(int argc, char *argv[])
 				exit(EXIT_SUCCESS);
 			}
 		}
-	}
 
 	check_gapbuffer(gb);
 
@@ -75,10 +68,23 @@ int main(int argc, char *argv[])
 	check_window(win);
 
 	bkgd(COLOR_PAIR(PAIR_BW));
-	refresh();
-
 	wbkgd(win, COLOR_PAIR(PAIR_RW));
-	waddstr(win, gb->endgap); 
+
+	int ccount = (maxy - 2) * (maxx - 2);
+	int x, y;
+	x = y = 0;
+
+	insert_c(gb, '$');
+	insert_c(gb, '$');
+	insert_c(gb, '$');
+	insert_c(gb, '$');
+	insert_c(gb, '$');
+	x+=5;
+
+	waddnstr(win, gb->buffer, ccount);
+	waddnstr(win, gb->endgap, ccount); 
+	wmove(win, y, x);
+	refresh();
 	wrefresh(win);
 	getch();
 
@@ -127,7 +133,6 @@ char splash_screen()
 void center_rowaddstr(int row, char *title)
 {
 	int len, indent, width;
-
 	width = getmaxx(stdscr);
 
 	len = strlen(title);
@@ -138,21 +143,27 @@ void center_rowaddstr(int row, char *title)
 }
 
 
-void check_colors()
+void color_init()
 {
-	if (!has_colors()) 				
+	if (!has_colors()) 
 	{
 		endwin();
 		printf("error: terminal does not have color\n");
 		exit(EXIT_FAILURE);
 	}
+	start_color();					
+	init_pair(PAIR_RW, COLOR_RED, COLOR_WHITE);	// name, text color, background
+	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
+	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
+	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
+	init_pair(PAIR_BB, COLOR_WHITE, COLOR_BLUE);
 }
 
 
 void check_resize() 
 {
 	int y = LINES, x = COLS;
-	while (y < 40 || x < 40)
+	while (y < 20 || x < 30)
 	{
 		getmaxyx(stdscr, y, x);
 		bkgd(COLOR_PAIR(PAIR_BR));

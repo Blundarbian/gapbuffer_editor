@@ -153,7 +153,7 @@ bool shift_up(gap_buffer *gb)
 }
 
 
-char delete(gap_buffer *gb)
+char delete_c(gap_buffer *gb)
 {
 	if (gb->gap == gb->buffer)	// at start
 		return '\0';
@@ -168,7 +168,7 @@ char delete(gap_buffer *gb)
 }
 
 
-bool insert(gap_buffer *gb, char c)
+bool insert_c(gap_buffer *gb, char c)
 {
 	if (gb->gapsize == 1) {
 		if (!(expandbuffer(gb)))
