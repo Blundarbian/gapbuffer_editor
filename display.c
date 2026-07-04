@@ -5,6 +5,7 @@
 #include "gap_buffer2.h"
 #include "display.h"
 
+#define NAME_SIZE 256
 enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 
 char splash_screen();					// DONE : welcome screen when no file is provided 
@@ -37,6 +38,8 @@ int main(int argc, char *argv[])
 
 	check_resize();			// check srceen size
 	getmaxyx(stdscr, maxy, maxx);
+	int c;
+	char name[NAME_SIZE];
 
 	if (argc == 2) 	// file in argument list 
 	{		
@@ -44,7 +47,26 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
-		gb = initgapbuffer(0);
+		while (1)
+		{
+			c = splash_screen();
+			if (c == 'n') 
+			{
+				gb = initgapbuffer(0);
+				break;
+			}
+			else if (c == 'o')
+			{
+				getnstr(name, NAME_SIZE);
+				gb = copyfiletobuffer(name);
+				break;
+			}
+			else if (c == 'q')
+			{
+				endwin();
+				exit(EXIT_SUCCESS);
+			}
+		}
 	}
 
 	check_gapbuffer(gb);
@@ -53,11 +75,10 @@ int main(int argc, char *argv[])
 	check_window(win);
 
 	bkgd(COLOR_PAIR(PAIR_BW));
-	splash_screen();
 	refresh();
 
 	wbkgd(win, COLOR_PAIR(PAIR_RW));
-	waddstr(win, "Hello! World!\n");
+	waddstr(win, gb->endgap); 
 	wrefresh(win);
 	getch();
 
@@ -90,13 +111,12 @@ char splash_screen()
 	center_rowaddstr(pos++, "\tq (quit)         ");
 
 	pos++;
-	while (c != 'c' && c != 'o' && c != 'n' && c != 'q')
+	while ((c = getch()) && c != 'c' && c != 'o' && c != 'n' && c != 'q')
 	{
 		attron(A_BOLD);
-		mvaddch(pos, width / 2, c = getch());
+		mvaddch(pos, width / 2, c); 
 		attroff(A_BOLD);
 		clrtoeol();			// move to front of line, clear, wait 50ms for next keypress
-		napms(50);
 	}
 
 	curs_set(1);
