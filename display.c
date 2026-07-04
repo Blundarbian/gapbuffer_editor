@@ -17,6 +17,17 @@ void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
 void modeline(char mode, char c, int x, int y, size_t pos, gap_buffer *gb); 
 
+typedef struct screen_pos_info				// TODO
+{
+	int c, maxy, maxx, bufcount, endcount, x, y;
+	char name[NAME_SIZE], mode;
+	size_t pos; 
+} info;
+
+char mode_select(char mode);		// TODO
+void insert_mode(char c);		// TODO
+void normal_mode(char c);		// TODO
+
 int main(int argc, char *argv[])
 {	
 	int c, maxy, maxx;
@@ -72,26 +83,38 @@ int main(int argc, char *argv[])
 	int bufcount = 0;
 	int endcount = (maxy - 2) * (maxx - 2);
 	int x, y;
+	char mode = 'n';
 	size_t pos = 0;
 	x = y = 0;
 
-	shift_down(gb);
-	shift_down(gb);
-	shift_down(gb);
-	shift_down(gb);
-	x+=4;
-	bufcount+=4;
+	while (1)
+	{
+		c = mode_select(mode);
+
 	waddnstr(win, gb->buffer, bufcount);
 	waddnstr(win, gb->endgap, endcount); 
 	wmove(win, y, x);
-	modeline('i', getch(), x, y, pos, gb);
+	modeline(mode, c, x, y, pos, gb);
 
 	refresh();
 	wrefresh(win);
-	getch();
+	}
 
 	endwin();
 	return 0;
+}
+
+
+char mode_select(char mode)
+{
+	char c = getch();
+
+	if (mode == 'i')
+		insert_mode(c);
+	else
+		normal_mode(c);
+
+	return c;
 }
 
 
