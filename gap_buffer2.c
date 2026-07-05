@@ -291,6 +291,43 @@ size_t move_nextword_down(gap_buffer *gb)
 	return pos;
 }
 
+
+size_t unti_new_line(gap_buffer *gb, int dir)
+{
+	size_t dist= 0;
+	char *p = gb->gap;
+	char *e = gb->endgap - 1;
+	char c;
+
+	if (dir < 0)	
+	{
+		while (p > gb->buffer)
+		{
+			c = *--p;
+
+			if (c == '\n')
+				break;
+
+			dist++;
+		}
+		return dist;
+	}
+	else
+	{
+		while (e < (gb->buffer + gb->index))
+		{
+			c = *++e;
+
+			if (c == '\n')
+				break;
+
+			dist++;
+		}
+		return dist;
+	}
+}
+
+
 /*
 int main(int argc, char *argv[]) 
 {

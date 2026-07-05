@@ -7,14 +7,21 @@
 
 #define NAME_SIZE 256
 enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
-typedef struct screen_info {
-	int c, maxy, maxx;
+
+typedef struct screen_pos_info	
+{
+	int c, x, y;
+
+	int maxy, maxx;
+
 	char name[NAME_SIZE];
-	int bufcount, endcount;
-	int x, y;
 	char mode;
-	size_t pos;
-}
+
+	size_t pos; 
+	size_t before, after;
+
+} screen_info;
+
 
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
@@ -23,24 +30,25 @@ void check_color();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
-void modeline(char mode, char c, int x, int y, size_t pos, gap_buffer *gb); 
+void modeline(screen_info *info, gap_buffer *gb); 
 
-typedef struct screen_pos_info				// TODO
+
+void info_pos_init(screen_info *info);
+void info_pos_init(screen_info *info)
 {
-	int c, maxy, maxx, bufcount, endcount, x, y;
-	char name[NAME_SIZE], mode;
-	size_t pos; 
-} info;
+	info->pos = 0;
+	info->x = info->y = 0;
+	info->mode = 'i';
+	info->before = 0;
+}
 
-char mode_select(char mode);		// TODO
-void insert_mode(char c);		// TODO
-void normal_mode(char c);		// TODO
+char mode_select(screen_info *info, gap_buffer *gb);	// TODO
+void insert_mode(screen_info *info, gap_buffer *gb);	// TODO
+void normal_mode(screen_info *info, gap_buffer *gb);	// TODO
 
 int main(int argc, char *argv[])
 {	
-	int c, maxy, maxx;
-	char name[NAME_SIZE];
-
+	screen_info info;
 	gap_buffer *gb;
 	WINDOW *win;
 
@@ -48,64 +56,64 @@ int main(int argc, char *argv[])
 	noecho();
 	keypad(stdscr, TRUE);
 
-	getmaxyx(stdscr, maxy, maxx);
+	getmaxyx(stdscr, info.maxy, info.maxx);
 
 	check_color();
 
 	check_resize();			// check srceen size
-	getmaxyx(stdscr, maxy, maxx);
+	getmaxyx(stdscr, info.maxy, info.maxx);
 
 	if (argc == 2) 	// file in argument list 
 		gb = copyfiletobuffer(argv[1]);
 	else
 		while (1)
 		{
-			c = splash_screen();				// TODO : char splash input
-			napms(50);		// nap between input
-			if (c == 'n') 
+			info.c = splash_screen();				// TODO : char splash input
+			if (info.c == 'n') 
 			{
 				gb = initgapbuffer(0);
 				break;
 			}
-			else if (c == 'o')
+			else if (info.c == 'o')
 			{
-				getnstr(name, NAME_SIZE);
-				gb = copyfiletobuffer(name);
+				getnstr(info.name, NAME_SIZE);
+				gb = copyfiletobuffer(info.name);
 				break;
 			}
-			else if (c == 'q')
+			else if (info.c == 'q')
 			{
 				endwin();
 				exit(EXIT_SUCCESS);
 			}
 		}
-
 	check_gapbuffer(gb);
 
-	win = newwin(maxy - 2, maxx - 2, 1, 1);		// window check
+	win = newwin(info.maxy - 2, info.maxx - 2, 1, 1);	// window check
 	check_window(win);
+	curs_set(1);
 
 	bkgd(COLOR_PAIR(PAIR_BW));
 	wbkgd(win, COLOR_PAIR(PAIR_RW));
 
-	int bufcount = 0;
-	int endcount = (maxy - 2) * (maxx - 2);
-	int x, y;
-	char mode = 'n';
-	size_t pos = 0;
-	x = y = 0;
-
+	info_pos_init(&info);
+	bool first = true;	
 	while (1)
 	{
-		c = mode_select(mode);
+		if (!first)
+		{
+			mode_select(&info, gb);
+			modeline(&info, gb);
+		}
 
-	waddnstr(win, gb->buffer, bufcount);
-	waddnstr(win, gb->endgap, endcount); 
-	wmove(win, y, x);
-	modeline(mode, c, x, y, pos, gb);
+		werase(win);
+		waddnstr(win, gb->buffer, 50);				// TODO : fix number of characters printed
+		waddnstr(win, gb->endgap, 50); 
 
-	refresh();
-	wrefresh(win);
+		wmove(win, info.y, info.x);
+
+		refresh();			// This refresh order works..
+		wrefresh(win);
+		first = false;
 	}
 
 	endwin();
@@ -113,35 +121,78 @@ int main(int argc, char *argv[])
 }
 
 
-char mode_select(char mode)
+char mode_select(screen_info *info, gap_buffer *gb)
 {
-	char c = getch();
-
-	if (mode == 'i')
-		insert_mode(c);
+	if (info->mode == 'i')
+		insert_mode(info, gb);
 	else
-		normal_mode(c);
+		info->mode = 'i';
+//		normal_mode(info, gb);
 
-	return c;
+	return info->c;
 }
 
 
-void modeline(char mode, char c, int x, int y, size_t pos, gap_buffer *gb) 
+void insert_mode(screen_info *info, gap_buffer *gb)
+{
+	info->c = getch();
+
+	char del;
+	if (info->c == KEY_BACKSPACE)						// Deleting
+	{
+		if ((del = delete_c(gb)))
+		{
+			if (del == '\n')					// new line, calc diff to prev new line
+			{
+				info->x = (int) unti_new_line(gb, -1);
+				info->y--;
+			}
+
+			else if (info->x > 0)					// std delete
+				info->x--;
+
+			if (info->pos> 0)			
+			{
+				info->pos--;
+			}
+		}
+	}
+
+	else if (info->c == '\n')
+	{
+		if (insert_c(gb, info->c))					// incriment y , x = 0 for newline
+		{
+			info->pos++;
+			info->y++;
+			info->x = 0;
+		}
+	}
+	else
+	{
+		if (insert_c(gb, info->c))					// insert case for any other character
+		{
+			info->pos++;
+			info->x++;
+		}
+	}
+}
+
+void modeline(screen_info *info, gap_buffer *gb) 
 {
 	move(LINES - 1, 1);
 	clrtoeol();
-	printw("mode : %s ", (mode == 'n') ? "[normal]" : "[insert]");
-	printw("X: %d, Y: %d, %zu%% %c", x, y, pos / (gb->index + 1), c);
+	printw("mode : %s ", (info->mode == 'n') ? "[normal]" : "[insert]");
+	printw("X: %d, Y: %d, %lf%% %c ", info->x, info->y, (double) (info->pos) / (gb->index + 1), info->c);
 }
 
 char splash_screen() 
 {
+	curs_set(0);
 	int c = '\0';
 	int height, width;
 	getmaxyx(stdscr, height, width);
 	int pos = height / 4;
 
-	curs_set(0);
 	center_rowaddstr(pos++, "Welcome to my Text editor!");
 	center_rowaddstr(pos++, "This is a test of a menu screen");
 	center_rowaddstr(pos++, "Created by me!");
@@ -158,15 +209,19 @@ char splash_screen()
 	center_rowaddstr(pos++, "\tq (quit)         ");
 
 	pos++;
-	while ((c = getch()) && c != 'c' && c != 'o' && c != 'n' && c != 'q')
+
+	while (1)
 	{
-		attron(A_BOLD);
+		c = getch();
+		
+		if (c == 'c' || c == 'o' || c == 'n' || c == 'q')
+                	break;
+
 		mvaddch(pos, width / 2, c); 
-		attroff(A_BOLD);
-		clrtoeol();			// move to front of line, clear, wait 50ms for next keypress
+		refresh();
 	}
 
-	curs_set(1);
+	curs_set(0);
 	return c;
 }
 

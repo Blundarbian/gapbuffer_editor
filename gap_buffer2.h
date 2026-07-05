@@ -35,4 +35,6 @@ bool move_findword(gap_buffer *gb, char *word);		// TODO
 size_t move_nextword_up(gap_buffer *gb);	
 size_t move_nextword_down(gap_buffer *gb);
 					
+size_t unti_new_line(gap_buffer *gb, int dir);
+
 #endif
