@@ -7,6 +7,14 @@
 
 #define NAME_SIZE 256
 enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
+typedef struct screen_info {
+	int c, maxy, maxx;
+	char name[NAME_SIZE];
+	int bufcount, endcount;
+	int x, y;
+	char mode;
+	size_t pos;
+}
 
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
