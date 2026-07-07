@@ -17,7 +17,6 @@ typedef struct screen_pos_info
 	char name[NAME_SIZE];
 	char mode;
 
-	size_t pos; 
 	size_t before, after;
 
 } screen_info;
@@ -36,10 +35,11 @@ void modeline(screen_info *info, gap_buffer *gb);
 void info_pos_init(screen_info *info);
 void info_pos_init(screen_info *info)
 {
-	info->pos = 0;
 	info->x = info->y = 0;
 	info->mode = 'i';
+
 	info->before = 0;
+	info->after = (info->maxy - 2) * (info->maxx - 2);
 }
 
 char mode_select(screen_info *info, gap_buffer *gb);	// TODO
@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
 	wbkgd(win, COLOR_PAIR(PAIR_RW));
 
 	info_pos_init(&info);
+
 	bool first = true;	
 	while (1)
 	{
@@ -106,8 +107,8 @@ int main(int argc, char *argv[])
 		}
 
 		werase(win);
-		waddnstr(win, gb->buffer, 50);				// TODO : fix number of characters printed
-		waddnstr(win, gb->endgap, 50); 
+		waddnstr(win, gb->buffer, info.before);				// TODO : fix number of characters printed
+		waddnstr(win, gb->endgap, info.after); 
 
 		wmove(win, info.y, info.x);
 
@@ -151,10 +152,7 @@ void insert_mode(screen_info *info, gap_buffer *gb)
 			else if (info->x > 0)					// std delete
 				info->x--;
 
-			if (info->pos> 0)			
-			{
-				info->pos--;
-			}
+			info->before--;
 		}
 	}
 
@@ -162,17 +160,17 @@ void insert_mode(screen_info *info, gap_buffer *gb)
 	{
 		if (insert_c(gb, info->c))					// incriment y , x = 0 for newline
 		{
-			info->pos++;
 			info->y++;
 			info->x = 0;
+			info->before++;
 		}
 	}
 	else
 	{
 		if (insert_c(gb, info->c))					// insert case for any other character
 		{
-			info->pos++;
 			info->x++;
+			info->before++;
 		}
 	}
 }
@@ -182,7 +180,7 @@ void modeline(screen_info *info, gap_buffer *gb)
 	move(LINES - 1, 1);
 	clrtoeol();
 	printw("mode : %s ", (info->mode == 'n') ? "[normal]" : "[insert]");
-	printw("X: %d, Y: %d, %lf%% %c ", info->x, info->y, (double) (info->pos) / (gb->index + 1), info->c);
+	printw("X: %d, Y: %d, s: %zu (%c)", info->x, info->y, (gb->index + 1) - gb->gapsize,  info->c);
 }
 
 char splash_screen() 
@@ -286,6 +284,7 @@ void check_gapbuffer(gap_buffer *gb)
 		exit(EXIT_FAILURE);
 	}
 }
+
 
 void check_window(WINDOW *win)
 {

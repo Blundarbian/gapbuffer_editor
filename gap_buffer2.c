@@ -201,7 +201,7 @@ bool expandbuffer(gap_buffer *gb)
 	size_t tail = oldsize - endset;		// tail of chars after realloc
 	memmove(gb->endgap + GAP_SIZE, gb->endgap, tail);
 	// move tail '\0' from realloc to positions to 'fuse' into engap
-	// idk if memmove is the fastest function to do this...
+	// idk if memmove is the fastest way to do this...
 	//
 	/* buf->[_______gap[0]end____]		out of space
 	 * buf->[_______gap[0]end____0000000]	realloc more space
