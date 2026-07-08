@@ -6,6 +6,7 @@
 #include "display.h"
 
 #define NAME_SIZE 256
+
 enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 
 typedef struct screen_pos_info	
@@ -64,7 +65,10 @@ int main(int argc, char *argv[])
 	getmaxyx(stdscr, info.maxy, info.maxx);
 
 	if (argc == 2) 	// file in argument list 
+	{
 		gb = copyfiletobuffer(argv[1]);
+		strncpy(info.name, argv[1], NAME_SIZE);
+	}
 	else
 		while (1)
 		{
@@ -72,6 +76,7 @@ int main(int argc, char *argv[])
 			if (info.c == 'n') 
 			{
 				gb = initgapbuffer(0);
+				strcpy(info.name, "--newfile--");
 				break;
 			}
 			else if (info.c == 'o')
@@ -179,8 +184,8 @@ void modeline(screen_info *info, gap_buffer *gb)
 {
 	move(LINES - 1, 1);
 	clrtoeol();
-	printw("mode : %s ", (info->mode == 'n') ? "[normal]" : "[insert]");
-	printw("X: %d, Y: %d, s: %zu (%c)", info->x, info->y, (gb->index + 1) - gb->gapsize,  info->c);
+	printw("mode : %s, ", (info->mode == 'n') ? "[normal]" : "[insert]");
+	printw("X: %d, Y: %d, s: %zu, n: %s, (%c)", info->x, info->y, (gb->index + 1) - gb->gapsize, info->name, info->c);
 }
 
 char splash_screen() 

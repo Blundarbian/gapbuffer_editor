@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include "gap_buffer2.h"
 
-#define GAP_SIZE 4096		// default gap size
-
 
 gap_buffer *initgapbuffer(size_t size)
 {

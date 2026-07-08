@@ -1,6 +1,7 @@
 #ifndef GAP_BUFFER_H
 #define GAP_BUFFER_H
 
+#define GAP_SIZE 4096 // default gap size
 typedef struct gb_structure {
 
 	char *buffer;		// buffer + gap
@@ -9,7 +10,7 @@ typedef struct gb_structure {
 	char *gap;		// ptr to gap
 	size_t gapsize;		// size of gap
 	char *endgap;		// ptr to end of gap
-
+				
 } gap_buffer;
 
 gap_buffer *copyfiletobuffer(char *name); 	
