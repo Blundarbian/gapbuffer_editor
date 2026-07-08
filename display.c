@@ -131,9 +131,8 @@ char mode_select(screen_info *info, gap_buffer *gb)
 {
 	if (info->mode == 'i')
 		insert_mode(info, gb);
-	else
-		info->mode = 'i';
-//		normal_mode(info, gb);
+	else 
+		normal_mode(info, gb);		// TODO
 
 	return info->c;
 }
@@ -170,6 +169,10 @@ void insert_mode(screen_info *info, gap_buffer *gb)
 			info->before++;
 		}
 	}
+	
+	else if (info->c == 27)
+		info->mode = 'n';
+
 	else
 	{
 		if (insert_c(gb, info->c))					// insert case for any other character
@@ -185,7 +188,7 @@ void modeline(screen_info *info, gap_buffer *gb)
 	move(LINES - 1, 1);
 	clrtoeol();
 	printw("mode : %s, ", (info->mode == 'n') ? "[normal]" : "[insert]");
-	printw("X: %d, Y: %d, s: %zu, n: %s, (%c)", info->x, info->y, (gb->index + 1) - gb->gapsize, info->name, info->c);
+	printw("X: %d, Y: %d, s: %zu, n: %s, %c", info->x, info->y, (gb->index + 1) - gb->gapsize, info->name, info->c);
 }
 
 char splash_screen() 
@@ -251,7 +254,7 @@ void check_color()
 		exit(EXIT_FAILURE);
 	}
 	start_color();					
-	init_pair(PAIR_RW, COLOR_RED, COLOR_WHITE);	// name, text color, background
+	init_pair(PAIR_RW, COLOR_BLUE, COLOR_WHITE);	// name, text color, background
 	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
 	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
 	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
