@@ -138,12 +138,46 @@ char mode_select(screen_info *info, gap_buffer *gb)
 }
 
 
+void normal_mode(screen_info *info, gap_buffer *gb)
+{
+	info->c = getch();
+
+	if (info->c == 27)			// esc to insert
+		info->mode = 'i';
+
+	else if (info->c == KEY_LEFT)
+	{
+		char eg = shift_up(gb);
+
+		if (eg == '\0')
+			return;
+
+		else if (info->x == 0 && info->y != 0)
+		{
+			info->x = unti_new_line(gb, -1);
+			info->y--;
+		}
+		else
+			info->x--;
+
+		info->before--;
+		info->after++;
+	}
+	
+	
+}
+
 void insert_mode(screen_info *info, gap_buffer *gb)
 {
 	info->c = getch();
 
 	char del;
-	if (info->c == KEY_BACKSPACE)						// Deleting
+
+	if (info->c == 27)			// esc to normal
+		info->mode = 'n';
+
+
+	else if (info->c == KEY_BACKSPACE)						// Deleting
 	{
 		if ((del = delete_c(gb)))
 		{
@@ -170,9 +204,6 @@ void insert_mode(screen_info *info, gap_buffer *gb)
 		}
 	}
 	
-	else if (info->c == 27)
-		info->mode = 'n';
-
 	else
 	{
 		if (insert_c(gb, info->c))					// insert case for any other character

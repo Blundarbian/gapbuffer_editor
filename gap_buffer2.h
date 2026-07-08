@@ -21,8 +21,8 @@ void printbuffer(gap_buffer *gb, bool visible);
 bool can_be_down_shift(gap_buffer *gb);		
 bool can_be_up_shift(gap_buffer *gb);		
 
-bool shift_down(gap_buffer *gb);		
-bool shift_up(gap_buffer *gb);			
+char shift_down(gap_buffer *gb);		
+char shift_up(gap_buffer *gb);			
 
 char delete_c(gap_buffer *gb);			
 bool insert_c(gap_buffer *gb, char c);		

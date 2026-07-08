@@ -125,29 +125,31 @@ bool can_be_down_shift(gap_buffer *gb)
 }
 
 
-bool shift_down(gap_buffer *gb)
+char shift_down(gap_buffer *gb)
 {
 	if (!can_be_down_shift(gb))
-		return false;
+		return '\0';
 
+	char eg = *gb->endgap;
 	*gb->gap = *gb->endgap; // gap (empty) = end of gap 
 	gb->gap++;              // gap shifts to empty spot 
 	gb->endgap++;          	// endgap shifts aswell
 
-	return true;
+	return eg;
 }
 
 
-bool shift_up(gap_buffer *gb)
+char shift_up(gap_buffer *gb)
 {
 	if (!can_be_up_shift(gb))
-		return false;
+		return '\0';
 
+	char eg = *gb->endgap;
 	gb->endgap--;
 	gb->gap--;
 	*gb->endgap = *gb->gap;
 	
-	return true;
+	return eg;
 }
 
 
