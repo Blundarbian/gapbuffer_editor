@@ -22,6 +22,7 @@ typedef struct screen_pos_info
 
 } screen_info;
 
+void info_pos_init(screen_info *info);
 
 char splash_screen();					// DONE : welcome screen when no file is provided 
 void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
@@ -30,10 +31,15 @@ void check_color();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
+							
 void modeline(screen_info *info, gap_buffer *gb); 
 
+char mode_select(screen_info *info, gap_buffer *gb);	// TODO
+void insert_mode(screen_info *info, gap_buffer *gb);	// DONEISH 
+void normal_mode(screen_info *info, gap_buffer *gb);	// TODO
 
-void info_pos_init(screen_info *info);
+void normal_left(screen_info *info, gap_buffer *gb);	// DONEISH
+
 void info_pos_init(screen_info *info)
 {
 	info->x = info->y = 0;
@@ -43,9 +49,6 @@ void info_pos_init(screen_info *info)
 	info->after = (info->maxy - 2) * (info->maxx - 2);
 }
 
-char mode_select(screen_info *info, gap_buffer *gb);	// TODO
-void insert_mode(screen_info *info, gap_buffer *gb);	// TODO
-void normal_mode(screen_info *info, gap_buffer *gb);	// TODO
 
 int main(int argc, char *argv[])
 {	
@@ -142,30 +145,47 @@ void normal_mode(screen_info *info, gap_buffer *gb)
 {
 	info->c = getch();
 
-	if (info->c == 27)			// esc to insert
-		info->mode = 'i';
+	if (info->c == 27) info->mode = 'i';	// esc to info mode
 
-	else if (info->c == KEY_LEFT)
+	else if (info->c == KEY_LEFT || info->c == 'h')
+		normal_left(info, gb);
+
+	else if (info->c == KEY_UP  || info->c == 'j')
 	{
-		char eg = shift_up(gb);
 
-		if (eg == '\0')
-			return;
-
-		else if (info->x == 0 && info->y != 0)
-		{
-			info->x = unti_new_line(gb, -1);
-			info->y--;
-		}
-		else
-			info->x--;
-
-		info->before--;
-		info->after++;
 	}
-	
-	
+
+	else if (info->c == KEY_RIGHT || info->c == 'k')
+	{
+
+	}
+
+	else if (info->c == KEY_DOWN || info->c == 'l')
+	{
+
+	}
 }
+
+
+void normal_left(screen_info *info, gap_buffer *gb)
+{
+	char eg = shift_up(gb);
+
+	if (eg == '\0')
+		return;
+
+	else if (info->x == 0 && info->y != 0)
+	{
+		info->x = unti_new_line(gb, -1);
+		info->y--;
+	}
+	else
+		info->x--;
+
+	info->before--;
+	info->after++;
+}
+
 
 void insert_mode(screen_info *info, gap_buffer *gb)
 {
@@ -218,8 +238,10 @@ void modeline(screen_info *info, gap_buffer *gb)
 {
 	move(LINES - 1, 1);
 	clrtoeol();
-	printw("mode : %s, ", (info->mode == 'n') ? "[normal]" : "[insert]");
-	printw("X: %d, Y: %d, s: %zu, n: %s, %c", info->x, info->y, (gb->index + 1) - gb->gapsize, info->name, info->c);
+	printw("%s, ", (info->mode == 'n') ? "[normal]" : "[insert]");
+	// (gb->index + 1) - gb->gapsize
+	printw("X: %d, Y: %d, s: %zu, ", info->x, info->y, info->before);
+	printw("n: %s, %c", info->name, info->c);
 }
 
 char splash_screen() 
