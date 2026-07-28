@@ -86,7 +86,7 @@ gap_buffer *copyfiletobuffer(char *name)
 		return NULL;
 	}
 
-	long size = ftell(fp);		// file length ftell check
+	size_t size = ftell(fp);		// file length ftell check
 	if (size < 0) 
 	{
 		fclose(fp);
@@ -132,9 +132,9 @@ char shift_down(gap_buffer *gb)
 		return '\0';
 
 	char eg = *gb->endgap;
-	*gb->gap = *gb->endgap; // gap (empty) = end of gap 
-	gb->gap++;              // gap shifts to empty spot 
-	gb->endgap++;          	// endgap shifts aswell
+	*gb->gap = *gb->endgap; 
+	gb->gap++;             
+	gb->endgap++;         
 
 	return eg;
 }
@@ -171,6 +171,7 @@ char delete_c(gap_buffer *gb)
 
 bool insert_c(gap_buffer *gb, char c)
 {
+	// request gb expansion if all positions in gap are filled
 	if (gb->gapsize == 1) {
 		if (!(expandbuffer(gb)))
 			return false;
@@ -188,11 +189,9 @@ bool expandbuffer(gap_buffer *gb)
 {
 	size_t offset = gb->gap - gb->buffer;	
 	size_t endset = gb->endgap - gb->buffer;
-
 	size_t oldsize = gb->index + 1;		
-	size_t newsize = oldsize + GAP_SIZE;	
 
-	char *nbuf = realloc(gb->buffer, newsize);
+	char *nbuf = realloc(gb->buffer, oldsize + GAP_SIZE);
 	if (!nbuf) return false;
 
 	gb->buffer = nbuf;			
@@ -200,6 +199,7 @@ bool expandbuffer(gap_buffer *gb)
 	gb->endgap = gb->buffer + endset;	// endgap set back
 
 	size_t tail = oldsize - endset;		// tail of chars after realloc
+
 	memmove(gb->endgap + GAP_SIZE, gb->endgap, tail);
 	
 	gb->gapsize += GAP_SIZE;		
@@ -273,6 +273,12 @@ int main(int argc, char *argv[])
 				break;
 			case '3' :
 				delete_c(gb);
+				break;
+			case '4' :
+				printf("%d\n", unti_new_line(gb, -1));
+				break;
+			case '5' :
+				printf("%d\n", unti_new_line(gb, 1));
 				break;
 			/*case 'b' :
 				move_nextword_up(gb);

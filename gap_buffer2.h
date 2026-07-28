@@ -2,18 +2,33 @@
 #define GAP_BUFFER_H
 
 #define GAP_SIZE 4096 // default gap size
-typedef struct gb_structure {
 
+/* GAP_BUFFER visual with ptr locations
+ * buffer[***********gap[00000000]endgap******]
+ *
+ * 			[--------] = gapsize
+ * 	 [-----------------------------------] = index
+ *
+ * 	 gap ptr points to first index of the gap.
+ * 	 end ptr points to first char after.
+ *
+ *	 gap - buffer 			= dist until start
+ *	 (buffer + index + 1) - end 	= dis until end
+ *	 	~ increment buffer ptr to last pos.
+ */
+
+typedef struct gb_structure {
+			
 	char *buffer;		
 	size_t index;		// buffer size - 1 for index
 
-	char *gap;			// begining / end of gap
+	char *gap;		// beginning & end of gap ptr 
 	char *endgap;		
 	size_t gapsize;		// size of gap
 				
 } gap_buffer;
 
-gap_buffer *initgapbuffer(size_t size);	
+gap_buffer *initgapbuffer(size_t size);				
 gap_buffer *copyfiletobuffer(char *name); 		
 void free_gap_buffer(gap_buffer *gb);
 void printbuffer(gap_buffer *gb, bool visible);	
