@@ -51,6 +51,7 @@ void printbuffer(gap_buffer *gb, bool visible)
 			p++;
 		}
 	}
+	putchar('\n');
 }
 
 
@@ -119,7 +120,7 @@ bool can_be_up_shift(gap_buffer *gb)
 
 bool can_be_down_shift(gap_buffer *gb)
 {	
-	if (gb->endgap < (gb->buffer + gb->index))
+	if (gb->endgap <= (gb->buffer + gb->index))
 		return true;
 	return false;
 }
@@ -185,11 +186,11 @@ bool insert_c(gap_buffer *gb, char c)
 
 bool expandbuffer(gap_buffer *gb) 
 {
-	size_t offset = gb->gap - gb->buffer;	// buf to gap start
-	size_t endset = gb->endgap - gb->buffer;// buf to end gap stop
+	size_t offset = gb->gap - gb->buffer;	
+	size_t endset = gb->endgap - gb->buffer;
 
-	size_t oldsize = gb->index + 1;		// old size
-	size_t newsize = oldsize + GAP_SIZE;	// new size
+	size_t oldsize = gb->index + 1;		
+	size_t newsize = oldsize + GAP_SIZE;	
 
 	char *nbuf = realloc(gb->buffer, newsize);
 	if (!nbuf) return false;
@@ -200,95 +201,12 @@ bool expandbuffer(gap_buffer *gb)
 
 	size_t tail = oldsize - endset;		// tail of chars after realloc
 	memmove(gb->endgap + GAP_SIZE, gb->endgap, tail);
-	// move tail '\0' from realloc to positions to 'fuse' into engap
-	// idk if memmove is the fastest way to do this...
-	//
-	/* buf->[_______gap[0]end____]		out of space
-	 * buf->[_______gap[0]end____0000000]	realloc more space
-	 * buf->[_______gap[0000000]end____] 	move newspace to be used by pointers
-	 */
 	
-	gb->gapsize += GAP_SIZE;		// incriment counters
+	gb->gapsize += GAP_SIZE;		
 	gb->index += GAP_SIZE;
 	gb->endgap += GAP_SIZE;
 
 	return true;
-}
-
-/*
-bool move_findword(gap_buffer *gb, char *word)		// TODO
-{
-	size_t dex; 
-	size_t cursor = gb->gap - gb->buffer;
-
-	return false;
-}
-
-bool delete_word_down(gap_buffer *gb)			// TODO
-{
-
-}
-
-bool delete_word_up(gap_buffer *gb)			// TODO
-{
-	long corsor = (gb->gap - gb->buffer) - 1;
-	size_t shift = 0;
-	
-	if ((shift = move_nextword_up(gb) == 0))
-		return false;		
-
-}
-*/
-
-size_t move_nextword_up(gap_buffer *gb)	
-{
-	long cursor = (gb->gap - gb->buffer) - 1;
-	size_t pos = 0;
-
-	if (gb->buffer[cursor] == ' ') 
-	{
-		while (gb->buffer[cursor] == ' ' && cursor >= 0) 
-		{
-			shift_up(gb);
-			pos++;
-			cursor--;
-		}
-		return pos;
-	}
-	
-	while (gb->buffer[cursor] != ' ' && cursor >= 0)
-	{
-		shift_up(gb);
-		pos++;
-		cursor--;
-	}
-	return pos;
-}
-
-
-size_t move_nextword_down(gap_buffer *gb)
-{
-	size_t cursor = gb->endgap - gb->buffer;
-	size_t pos = 0;
-
-	if (gb->buffer[cursor] == ' ') 
-	{
-		while (gb->buffer[cursor] == ' ' && cursor < gb->index) 
-		{
-			shift_down(gb);
-			pos++;
-			cursor++;
-		}
-		return pos;
-	}
-	
-	while (gb->buffer[cursor] != ' ' && cursor < gb->index)
-	{
-		shift_down(gb);
-		pos++;
-		cursor++;
-	}
-	return pos;
 }
 
 
@@ -328,7 +246,7 @@ size_t unti_new_line(gap_buffer *gb, int dir)
 }
 
 
-/*
+
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;
@@ -354,9 +272,9 @@ int main(int argc, char *argv[])
 				shift_down(gb);
 				break;
 			case '3' :
-				delete(gb);
+				delete_c(gb);
 				break;
-			case 'b' :
+			/*case 'b' :
 				move_nextword_up(gb);
 				break;
 			case 'f' :
@@ -365,9 +283,10 @@ int main(int argc, char *argv[])
 			case 's' :
 				move_findword(gb, "Five");
 				break;
+			*/
 			default:
 				if (c != '\n')
-					insert(gb, c);
+					insert_c(gb, c);
 				break;
 		}
 	}
@@ -375,4 +294,4 @@ int main(int argc, char *argv[])
 	free_gap_buffer(gb);
 	return 0;
 }
-*/
+
