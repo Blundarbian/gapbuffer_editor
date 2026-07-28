@@ -51,7 +51,35 @@ void printbuffer(gap_buffer *gb, bool visible)
 			p++;
 		}
 	}
-	putchar('\n');
+}
+
+
+bool safegapfile(gap_buffer *gb, char *name)
+{
+	if (!gb) return false;
+
+	FILE *fp = fopen(name, "w");
+	if (!fp) return false;
+
+	size_t cur = 0;
+	size_t gindex = gb->gap - gb->buffer;
+	size_t eindex = gindex + gb->gapsize;
+
+	while (cur < gindex)
+	{
+		putc(gb->buffer[cur], fp);
+		cur++;
+	}
+	
+	cur = eindex;
+	while (cur < gb->index)
+	{
+		putc(gb->buffer[cur], fp);
+		cur++;
+	}
+	fclose(fp);
+	
+	return true;
 }
 
 
@@ -87,7 +115,7 @@ gap_buffer *copyfiletobuffer(char *name)
 	}
 
 	size_t size = ftell(fp);		// file length ftell check
-	if (size < 0) 
+	if (size == 0) 
 	{
 		fclose(fp);
 		return NULL;
@@ -120,7 +148,7 @@ bool can_be_up_shift(gap_buffer *gb)
 
 bool can_be_down_shift(gap_buffer *gb)
 {	
-	if (gb->endgap <= (gb->buffer + gb->index))
+	if (gb->endgap < (gb->buffer + gb->index))
 		return true;
 	return false;
 }
@@ -210,7 +238,7 @@ bool expandbuffer(gap_buffer *gb)
 }
 
 
-size_t unti_new_line(gap_buffer *gb, int dir)
+size_t until_new_line(gap_buffer *gb, int dir)
 {
 	size_t dist= 0;
 	char *p = gb->gap;
@@ -246,6 +274,45 @@ size_t unti_new_line(gap_buffer *gb, int dir)
 }
 
 
+size_t until_new_word(gap_buffer *gb, int dir)
+{
+	size_t dist= 0;
+	char *p = gb->gap;
+	char *e = gb->endgap - 1;
+	char c;
+
+	if (dir < 0)
+	{
+		if ((c = *--p) == ' ')
+			while (p > gb->buffer && c == ' ')
+			{
+				c = *--p;
+				dist++;
+			}
+		else
+			while (p > gb->buffer && c != ' ')
+			{
+				c = *--p;
+				dist++;
+			}
+	}
+	else
+	{
+		if ((c = *++e) == ' ')
+			while (e < (gb->buffer + gb->index) && c == ' ')
+			{
+				c = *++e;
+				dist++;
+			}
+		else
+			while (e < (gb->buffer + gb->index) && c != ' ')
+			{
+				c = *++e;
+				dist++;
+			}
+	}
+	return dist;
+}
 
 int main(int argc, char *argv[]) 
 {
@@ -275,10 +342,13 @@ int main(int argc, char *argv[])
 				delete_c(gb);
 				break;
 			case '4' :
-				printf("%d\n", unti_new_line(gb, -1));
+				printf("%zu\n", until_new_line(gb, 1));
 				break;
 			case '5' :
-				printf("%d\n", unti_new_line(gb, 1));
+				printf("%zu\n", until_new_word(gb, 1));
+				break;
+			case '6' :
+				printf("%d\n", safegapfile(gb, "savetest.txt"));
 				break;
 			/*case 'b' :
 				move_nextword_up(gb);

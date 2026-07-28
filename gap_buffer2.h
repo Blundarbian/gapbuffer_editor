@@ -1,7 +1,7 @@
 #ifndef GAP_BUFFER_H
 #define GAP_BUFFER_H
 
-#define GAP_SIZE 4096 // default gap size
+#define GAP_SIZE 4096 
 
 /* GAP_BUFFER visual with ptr locations
  * buffer[***********gap[00000000]endgap******]
@@ -12,9 +12,8 @@
  * 	 gap ptr points to first index of the gap.
  * 	 end ptr points to first char after.
  *
- *	 gap - buffer 			= dist until start
- *	 (buffer + index + 1) - end 	= dis until end
- *	 	~ increment buffer ptr to last pos.
+ *	 gap - buffer 				= dist until start
+ *	 (buffer + index + 1) - end = dis until end
  */
 
 typedef struct gb_structure {
@@ -28,21 +27,28 @@ typedef struct gb_structure {
 				
 } gap_buffer;
 
+// GAP_BUFFER initilizers, cleanup, and printing 
 gap_buffer *initgapbuffer(size_t size);				
 gap_buffer *copyfiletobuffer(char *name); 		
 void free_gap_buffer(gap_buffer *gb);
 void printbuffer(gap_buffer *gb, bool visible);	
+bool safegapfile(gap_buffer *gb, char *name);
 
+// Shift up/down single char
 bool can_be_down_shift(gap_buffer *gb);		
 bool can_be_up_shift(gap_buffer *gb);		
-
 char shift_down(gap_buffer *gb);		
 char shift_up(gap_buffer *gb);			
 
-char delete_c(gap_buffer *gb);			
+// delete/expand single char
+char delete_c(gap_buffer *gb);				
 bool insert_c(gap_buffer *gb, char c);		
+
+// expand buffer by GAP_SIZE once gap is exaughsted 
 bool expandbuffer(gap_buffer *gb);		
 
-size_t unti_new_line(gap_buffer *gb, int dir);
+// give distance until newline or word
+size_t until_new_line(gap_buffer *gb, int dir);	 
+size_t until_new_word(gap_buffer *gb, int dir);	 
 
 #endif
