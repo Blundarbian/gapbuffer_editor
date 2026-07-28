@@ -62,16 +62,16 @@ bool safegapfile(gap_buffer *gb, char *name)
 	if (!fp) return false;
 
 	size_t cur = 0;
-	size_t gindex = gb->gap - gb->buffer;
-	size_t eindex = gindex + gb->gapsize;
+	size_t gap_index = gb->gap - gb->buffer;
+	size_t end_index = gap_index + gb->gapsize;
 
-	while (cur < gindex)
+	while (cur < gap_index)
 	{
 		putc(gb->buffer[cur], fp);
 		cur++;
 	}
 	
-	cur = eindex;
+	cur = end_index;
 	while (cur < gb->index)
 	{
 		putc(gb->buffer[cur], fp);
