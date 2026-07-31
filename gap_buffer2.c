@@ -28,14 +28,69 @@ gap_buffer *initgapbuffer(size_t size)
 }
 
 
-void printbuffer(gap_buffer *gb, bool visible)
+gap_buffer *copyfiletobuffer(char *filename)
+{
+	FILE *fp = fopen(filename, "r");		
+	if (!fp) 
+		return NULL;
+
+	if (fseek(fp, 0, SEEK_END))	// fseek check 
+	{
+		fclose(fp);
+		return NULL;
+	}
+
+	size_t size = ftell(fp);	// file length check
+	if (size == 0) 
+	{
+		fclose(fp);
+		return NULL;
+	}
+	rewind(fp);			// rewind from EOF for cp 
+
+
+	gap_buffer *gb = initgapbuffer(size);	// initilizes gap_buffer based off size
+
+	int c;
+	size_t pos = gb->gapsize;				// start copying after gap 
+	while (((c = getc(fp)) != EOF) && pos <= gb->index)	// gap is in initilized in the front of the buffer
+	{
+		gb->buffer[pos] = c;
+		pos++;
+	}
+	fclose(fp);
+
+	return gb;
+}
+
+
+void free_gap_buffer(gap_buffer *gb)
+{
+	if (!gb) 
+		return;	
+
+	if (!(gb->buffer))	
+	{
+		free(gb);
+		gb = NULL;
+		return;
+	}
+
+	free(gb->buffer);
+	gb->buffer = NULL;
+	gb->endgap = NULL;
+	gb->gap = NULL;
+}
+
+
+void printbuffer(gap_buffer *gb, bool visiblegap)
 {
 	char *p = gb->buffer;
 	while (p <= gb->buffer + gb->index)
 	{
 		if (p == gb->gap)	
 		{
-			if (visible)
+			if (visiblegap)
 			{
 				for (size_t i = 0; i < gb->gapsize; i++)
 					putchar('_');
@@ -54,11 +109,11 @@ void printbuffer(gap_buffer *gb, bool visible)
 }
 
 
-bool safegapfile(gap_buffer *gb, char *name)
+bool safegapfile(gap_buffer *gb, char *filename)
 {
 	if (!gb) return false;
 
-	FILE *fp = fopen(name, "w");
+	FILE *fp = fopen(filename, "w");
 	if (!fp) return false;
 
 	size_t cur = 0;
@@ -83,74 +138,15 @@ bool safegapfile(gap_buffer *gb, char *name)
 }
 
 
-void free_gap_buffer(gap_buffer *gb)
-{
-	if (!gb) 
-		return;	
-
-	if (!(gb->buffer))	
-	{
-		free(gb);
-		gb = NULL;
-		return;
-	}
-
-	free(gb->buffer);
-	gb->buffer = NULL;
-	gb->endgap = NULL;
-	gb->gap = NULL;
-}
-
-
-gap_buffer *copyfiletobuffer(char *name)
-{
-	FILE *fp = fopen(name, "r");		
-	if (!fp) 
-		return NULL;
-
-	if (fseek(fp, 0, SEEK_END))	// fseek check 
-	{
-		fclose(fp);
-		return NULL;
-	}
-
-	size_t size = ftell(fp);		// file length ftell check
-	if (size == 0) 
-	{
-		fclose(fp);
-		return NULL;
-	}
-	rewind(fp);			// rewind from EOF to begin copying input
-
-
-	gap_buffer *gb = initgapbuffer(size);		// initilize gap_buffer based off file size
-
-	int c;
-	size_t pos = gb->gapsize;				// start copying after gap
-	while (((c = getc(fp)) != EOF) && pos <= gb->index)	// gap is in initilized in the front of the buffer
-	{
-		gb->buffer[pos] = c;
-		pos++;
-	}
-	fclose(fp);
-
-	return gb;
+bool can_be_down_shift(gap_buffer *gb)
+{	
+	return (gb->endgap < (gb->buffer + gb->index));
 }
 
 
 bool can_be_up_shift(gap_buffer *gb)
 {
-	if (gb->gap > gb->buffer)
-		return true;
-	return false;
-}
-
-
-bool can_be_down_shift(gap_buffer *gb)
-{	
-	if (gb->endgap < (gb->buffer + gb->index))
-		return true;
-	return false;
+	return (gb->gap > gb->buffer);
 }
 
 
@@ -314,6 +310,18 @@ size_t until_new_word(gap_buffer *gb, int dir)
 	return dist;
 }
 
+
+void shift_line(gap_buffer *gb, int dir)
+{
+	size_t pos = until_new_line(gb, -1) + until_new_line (gb, 1) + 1;
+
+	while (pos != 0)
+	{
+		(dir > 0) ? shift_down(gb) : shift_up(gb);
+		pos--;
+	}
+}
+
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;
@@ -350,16 +358,12 @@ int main(int argc, char *argv[])
 			case '6' :
 				printf("%d\n", safegapfile(gb, "savetest.txt"));
 				break;
-			/*case 'b' :
-				move_nextword_up(gb);
+			case '7' :
+				shift_line(gb, -1);
 				break;
-			case 'f' :
-				move_nextword_down(gb);
+			case '8' :
+				shift_line(gb, 1);
 				break;
-			case 's' :
-				move_findword(gb, "Five");
-				break;
-			*/
 			default:
 				if (c != '\n')
 					insert_c(gb, c);
@@ -370,4 +374,3 @@ int main(int argc, char *argv[])
 	free_gap_buffer(gb);
 	return 0;
 }
-

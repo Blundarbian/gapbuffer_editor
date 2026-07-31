@@ -8,46 +8,12 @@
 
 enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
 
-typedef struct screen_pos_info	
-{
-	int c, x, y;
-
-	int maxy, maxx;
-
-	char name[NAME_SIZE];
-	char mode;
-
-	size_t before, after;
-
-} screen_info;
-
-void info_pos_init(screen_info *info);
-
-char splash_screen();					// DONE : welcome screen when no file is provided 
-void center_rowaddstr(int row, char *title);		// DONE	: places string centered along given row
 
 void check_color();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
 							
-void modeline(screen_info *info, gap_buffer *gb); 
-
-char mode_select(screen_info *info, gap_buffer *gb);	// TODO
-void insert_mode(screen_info *info, gap_buffer *gb);	// DONEISH 
-void normal_mode(screen_info *info, gap_buffer *gb);	// TODO
-
-void normal_left(screen_info *info, gap_buffer *gb);	// DONEISH
-
-void info_pos_init(screen_info *info)
-{
-	info->x = info->y = 0;
-	info->mode = 'i';
-
-	info->before = 0;
-	info->after = (info->maxy - 2) * (info->maxx - 2);
-}
-
 
 int main(int argc, char *argv[])
 {	
@@ -95,205 +61,8 @@ int main(int argc, char *argv[])
 		}
 	check_gapbuffer(gb);
 
-	win = newwin(info.maxy - 2, info.maxx - 2, 1, 1);	// window check
-	check_window(win);
-	curs_set(1);
-
-	bkgd(COLOR_PAIR(PAIR_BW));
-	wbkgd(win, COLOR_PAIR(PAIR_RW));
-
-	info_pos_init(&info);
-
-	bool first = true;	
-	while (1)
-	{
-		if (!first)
-		{
-			mode_select(&info, gb);
-			modeline(&info, gb);
-		}
-
-		werase(win);
-		waddnstr(win, gb->buffer, info.before);				// TODO : fix number of characters printed
-		waddnstr(win, gb->endgap, info.after); 
-
-		wmove(win, info.y, info.x);
-
-		refresh();			// This refresh order works..
-		wrefresh(win);
-		first = false;
-	}
-
 	endwin();
 	return 0;
-}
-
-
-char mode_select(screen_info *info, gap_buffer *gb)
-{
-	if (info->mode == 'i')
-		insert_mode(info, gb);
-	else 
-		normal_mode(info, gb);		// TODO
-
-	return info->c;
-}
-
-
-void normal_mode(screen_info *info, gap_buffer *gb)
-{
-	info->c = getch();
-
-	if (info->c == 27) info->mode = 'i';	// esc to info mode
-
-	else if (info->c == KEY_LEFT || info->c == 'h')
-		normal_left(info, gb);
-
-	else if (info->c == KEY_UP  || info->c == 'j')
-	{
-
-	}
-
-	else if (info->c == KEY_RIGHT || info->c == 'k')
-	{
-
-	}
-
-	else if (info->c == KEY_DOWN || info->c == 'l')
-	{
-
-	}
-}
-
-
-void normal_left(screen_info *info, gap_buffer *gb)
-{
-	char eg = shift_up(gb);
-
-	if (eg == '\0')
-		return;
-
-	else if (info->x == 0 && info->y != 0)
-	{
-		info->x = unti_new_line(gb, -1);
-		info->y--;
-	}
-	else
-		info->x--;
-
-	info->before--;
-	info->after++;
-}
-
-
-void insert_mode(screen_info *info, gap_buffer *gb)
-{
-	info->c = getch();
-
-	char del;
-
-	if (info->c == 27)			// esc to normal
-		info->mode = 'n';
-
-
-	else if (info->c == KEY_BACKSPACE)						// Deleting
-	{
-		if ((del = delete_c(gb)))
-		{
-			if (del == '\n')					// new line, calc diff to prev new line
-			{
-				info->x = (int) unti_new_line(gb, -1);
-				info->y--;
-			}
-
-			else if (info->x > 0)					// std delete
-				info->x--;
-
-			info->before--;
-		}
-	}
-
-	else if (info->c == '\n')
-	{
-		if (insert_c(gb, info->c))					// incriment y , x = 0 for newline
-		{
-			info->y++;
-			info->x = 0;
-			info->before++;
-		}
-	}
-	
-	else
-	{
-		if (insert_c(gb, info->c))					// insert case for any other character
-		{
-			info->x++;
-			info->before++;
-		}
-	}
-}
-
-void modeline(screen_info *info, gap_buffer *gb) 
-{
-	move(LINES - 1, 1);
-	clrtoeol();
-	printw("%s, ", (info->mode == 'n') ? "[normal]" : "[insert]");
-	// (gb->index + 1) - gb->gapsize
-	printw("X: %d, Y: %d, s: %zu, ", info->x, info->y, info->before);
-	printw("n: %s, %c", info->name, info->c);
-}
-
-char splash_screen() 
-{
-	curs_set(0);
-	int c = '\0';
-	int height, width;
-	getmaxyx(stdscr, height, width);
-	int pos = height / 4;
-
-	center_rowaddstr(pos++, "Welcome to my Text editor!");
-	center_rowaddstr(pos++, "This is a test of a menu screen");
-	center_rowaddstr(pos++, "Created by me!");
-	pos++;
-
-	attron(A_UNDERLINE);
-	center_rowaddstr(pos++, "Choose an option");
-	attroff(A_UNDERLINE);
-	pos++;
-
-	center_rowaddstr(pos++, "\tc (change colors)");
-	center_rowaddstr(pos++, "\to (open file)    ");
-	center_rowaddstr(pos++, "\tn (new file)     ");
-	center_rowaddstr(pos++, "\tq (quit)         ");
-
-	pos++;
-
-	while (1)
-	{
-		c = getch();
-		
-		if (c == 'c' || c == 'o' || c == 'n' || c == 'q')
-                	break;
-
-		mvaddch(pos, width / 2, c); 
-		refresh();
-	}
-
-	curs_set(0);
-	return c;
-}
-
-
-void center_rowaddstr(int row, char *title)
-{
-	int len, indent, width;
-	width = getmaxx(stdscr);
-
-	len = strlen(title);
-	indent = (width - len) / 2;
-
-	mvaddstr(row, indent, title);
-	refresh();
 }
 
 
@@ -324,7 +93,7 @@ void check_resize()
 		move(0, 0);
 		attron(A_BLINK);
 		addstr("Please resize window\n");
-		addstr("Must be > 40\n");
+		addstr("min: 20x30\n");
 		attroff(A_BLINK);
 		refresh();
 		getch();
