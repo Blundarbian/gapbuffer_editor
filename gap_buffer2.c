@@ -322,6 +322,7 @@ void shift_line(gap_buffer *gb, int dir)
 	}
 }
 
+
 int main(int argc, char *argv[]) 
 {
 	gap_buffer *gb = NULL;

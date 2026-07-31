@@ -6,20 +6,56 @@
 
 #define NAME_SIZE 256
 
-enum { PAIR_RW = 1, PAIR_BW, PAIR_WB, PAIR_BR, PAIR_BB};
-
-
 void check_color();					// DONE : start color pairs
 void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
 void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
 void check_window(WINDOW *win);				// DONE	: exit if window dne
-							
+
+	
+typedef struct rendered_screen {
+
+	int available;
+	int highlight;
+	char *screen;
+	gap_buffer *gb;
+
+} render;
+
+enum HL_FORMATS {
+	HL_NORMALS,
+	HL_COMMENT,
+	HL_KEYWORD,
+	HL_STRINGS,
+	HL_LITERAL,
+	HL_SEARCHS
+};
+
+
+void check_color()
+{
+	if (!has_colors()) 
+	{
+		endwin();
+		printf("error: terminal does not support color\n");
+		exit(EXIT_FAILURE);
+	}
+
+	start_color();					
+	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
+	
+	init_color(COLOR_GRAY, 500, 500, 500);
+	init_pair(HL_COMMENT, COLOR_GRAY, COLOR_WHITE);
+
+	init_pair(HL_KEYWORD, COLOR_BLACK, COLOR_BLACK);
+	init_pair(HL_STRINGS, COLOR_BLACK, COLOR_BLACK);
+	init_pair(HL_LITERAL, COLOR_WHITE, COLOR_BLACK);
+	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
+}
+	
 
 int main(int argc, char *argv[])
 {	
-	screen_info info;
-	gap_buffer *gb;
-	WINDOW *win;
+	render screen;
 
 	initscr();
 	noecho();
@@ -63,23 +99,6 @@ int main(int argc, char *argv[])
 
 	endwin();
 	return 0;
-}
-
-
-void check_color()
-{
-	if (!has_colors()) 
-	{
-		endwin();
-		printf("error: terminal does not have color\n");
-		exit(EXIT_FAILURE);
-	}
-	start_color();					
-	init_pair(PAIR_RW, COLOR_BLUE, COLOR_WHITE);	// name, text color, background
-	init_pair(PAIR_BW, COLOR_WHITE, COLOR_BLACK);
-	init_pair(PAIR_WB, COLOR_BLACK, COLOR_WHITE);
-	init_pair(PAIR_BR, COLOR_BLACK, COLOR_RED);
-	init_pair(PAIR_BB, COLOR_WHITE, COLOR_BLUE);
 }
 
 
