@@ -10,8 +10,8 @@
 typedef struct rendered_screen {
 
 	int available;
-	int *highlights;
 	int screen_size;
+	int *highlights;
 	char *screen;
 	gap_buffer *gb;
 
@@ -144,14 +144,17 @@ int main(int argc, char *argv[])
 	if (!init_hl_formats())
 		errormsg("term does not support rgb");
 
+
 	render *disp = init_screen(argv[1]);
+
 	if (!disp)
 		errormsg("cannot create gapbuffer");
+
 
 	size_t offset = 0;
 	int y, x;
 
-	while (offset != 49)
+	while (offset != disp->gb->index - disp->available)
 	{
 	screen_populate(disp, offset);
 	printw("%s", disp->screen);
