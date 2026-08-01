@@ -5,21 +5,100 @@
 #include "display.h"
 
 #define NAME_SIZE 256
+#define MAX_FILELEN 4096
 
-void check_color();					// DONE : start color pairs
-void check_resize();					// DONE	: Changes stdscr for size while waiting for proper resize
-void check_gapbuffer(gap_buffer *gb);			// DONE : exit if gap_buffer dne
-void check_window(WINDOW *win);				// DONE	: exit if window dne
-
-	
 typedef struct rendered_screen {
 
 	int available;
-	int highlight;
+	int *highlights;
+	int screen_size;
 	char *screen;
 	gap_buffer *gb;
 
 } render;
+
+
+bool init_hl_formats();					// DONE : start color pairs
+render *init_screen(char *filename);
+bool screen_populate(render *disp, size_t offset);
+void errormsg(char *error);
+
+render *init_screen(char *filename)
+{
+	render *disp = NULL;
+	disp = malloc(sizeof(render));
+	if (!disp) return NULL;
+
+	if (strnlen(filename, MAX_FILELEN) == 0)	// new file
+		disp->gb = initgapbuffer(0);
+	else
+	{
+		disp->gb = copyfiletobuffer(filename);
+		if (!(disp->gb)) disp->gb = initgapbuffer(0);	// file not found }
+	}
+
+	if (!disp->gb) return NULL;			// cannot be created
+
+	disp->available = LINES * COLS;
+	disp->screen_size = 0;
+
+	disp->highlights = malloc(sizeof(int) * (disp->available));
+	if (!disp->highlights) return NULL;
+
+	disp->screen = malloc(sizeof(char) * disp->available);
+	if (!disp->screen) return NULL;
+
+	return disp;
+}
+
+
+bool screen_populate(render *disp, size_t offset)
+{
+	char *buffer = disp->gb->buffer;
+	char *gap = disp->gb->gap;
+	size_t index = disp->gb->index;
+	size_t before_gap = gap - buffer;
+	char *screen = disp->screen;
+
+	int lines = LINES - 1;
+	size_t bp = 0;
+	int sp = 0;
+	char c;
+	bool gap_skip = true;
+	bool off_skip = true;
+
+	while (lines > 0 && sp < disp->available && bp < index)	// lines to add, index range of screen buffer, index range of gap_buffer
+	{
+		if (before_gap == 0 && gap_skip)	// skip gap space
+		{
+			bp += disp->gb->gapsize;
+			gap_skip = false;
+		}
+		else 
+			before_gap--;
+
+		c = buffer[bp];
+		if (c != '\0')
+		{
+			if (c == '\n' && offset != 0 && off_skip) 	// ignore lines until offset
+				offset--;
+
+			if (c == '\n' && offset == 0) 	// increment for each line
+				lines--;
+
+			if (offset == 0 && !off_skip) 		// any other character is added to screen buffer
+				screen[sp++] = c;			
+		}
+		bp++;
+		if (offset == 0)
+			off_skip = false;
+	
+	}
+	disp->screen_size = sp;
+
+	return true;
+}
+
 
 enum HL_FORMATS {
 	HL_NORMALS,
@@ -31,115 +110,53 @@ enum HL_FORMATS {
 };
 
 
-void check_color()
+bool init_hl_formats()
 {
-	if (!has_colors()) 
-	{
-		endwin();
-		printf("error: terminal does not support color\n");
-		exit(EXIT_FAILURE);
-	}
+	if (!has_colors() || !can_change_color()) 
+		return false;
 
 	start_color();					
 	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
-	
-	init_color(COLOR_GRAY, 500, 500, 500);
-	init_pair(HL_COMMENT, COLOR_GRAY, COLOR_WHITE);
-
+	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_WHITE);
 	init_pair(HL_KEYWORD, COLOR_BLACK, COLOR_BLACK);
 	init_pair(HL_STRINGS, COLOR_BLACK, COLOR_BLACK);
 	init_pair(HL_LITERAL, COLOR_WHITE, COLOR_BLACK);
 	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
+
+	return true;
 }
-	
+
+
+void errormsg(char *error)
+{
+	printf("error: %s\n", error);
+	exit(EXIT_FAILURE);
+}
+
 
 int main(int argc, char *argv[])
 {	
-	render screen;
-
 	initscr();
 	noecho();
 	keypad(stdscr, TRUE);
 
-	getmaxyx(stdscr, info.maxy, info.maxx);
+	if (!init_hl_formats())
+		errormsg("term does not support rgb");
 
-	check_color();
+	render *disp = init_screen(argv[1]);
+	if (!disp)
+		errormsg("cannot create gapbuffer");
 
-	check_resize();			// check srceen size
-	getmaxyx(stdscr, info.maxy, info.maxx);
+	size_t offset = 46;
+	int y, x;
 
-	if (argc == 2) 	// file in argument list 
-	{
-		gb = copyfiletobuffer(argv[1]);
-		strncpy(info.name, argv[1], NAME_SIZE);
-	}
-	else
-		while (1)
-		{
-			info.c = splash_screen();				// TODO : char splash input
-			if (info.c == 'n') 
-			{
-				gb = initgapbuffer(0);
-				strcpy(info.name, "--newfile--");
-				break;
-			}
-			else if (info.c == 'o')
-			{
-				getnstr(info.name, NAME_SIZE);
-				gb = copyfiletobuffer(info.name);
-				break;
-			}
-			else if (info.c == 'q')
-			{
-				endwin();
-				exit(EXIT_SUCCESS);
-			}
-		}
-	check_gapbuffer(gb);
+	screen_populate(disp, offset);
 
-	endwin();
-	return 0;
-}
+	printw("%s", disp->screen);
 
-
-void check_resize() 
-{
-	int y = LINES, x = COLS;
-	while (y < 20 || x < 30)
-	{
-		getmaxyx(stdscr, y, x);
-		bkgd(COLOR_PAIR(PAIR_BR));
-		move(0, 0);
-		attron(A_BLINK);
-		addstr("Please resize window\n");
-		addstr("min: 20x30\n");
-		attroff(A_BLINK);
-		refresh();
-		getch();
-	}
-	clear();
-	bkgd(COLOR_PAIR(PAIR_BW));
 	refresh();
-}
+	getch();
+	endwin();
 
-
-void check_gapbuffer(gap_buffer *gb)
-{
-	if (!gb)					// gap_buffer2 check
-	{
-		endwin();
-		printf("error: gap_buffer cannot be created\n");
-		exit(EXIT_FAILURE);
-	}
-}
-
-
-void check_window(WINDOW *win)
-{
-	if (!win)
-	{
-		endwin();
-		printf("error: window win cannot be created\n");
-		exit(EXIT_FAILURE);
-	}
+	return 0;
 }
