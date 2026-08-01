@@ -60,7 +60,7 @@ bool screen_populate(render *disp, size_t offset)
 	size_t before_gap = gap - buffer;
 	char *screen = disp->screen;
 
-	int lines = LINES - 1;
+	int lines = LINES;
 	size_t bp = 0;
 	int sp = 0;
 	char c;
@@ -94,6 +94,7 @@ bool screen_populate(render *disp, size_t offset)
 			off_skip = false;
 	
 	}
+	disp->screen[sp] = '\0';
 	disp->screen_size = sp;
 
 	return true;
@@ -147,13 +148,20 @@ int main(int argc, char *argv[])
 	if (!disp)
 		errormsg("cannot create gapbuffer");
 
-	size_t offset = 46;
+	size_t offset = 0;
 	int y, x;
 
+	while (offset != 49)
+	{
 	screen_populate(disp, offset);
-
 	printw("%s", disp->screen);
+	offset++;
 
+	refresh();
+	napms(50);
+	clear();
+	}
+	printw("%s", disp->screen);
 	refresh();
 	getch();
 	endwin();
