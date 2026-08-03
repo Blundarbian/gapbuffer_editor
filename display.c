@@ -9,10 +9,10 @@
 
 typedef struct rendered_screen {
 
-	int available;
-	int xprev;
 	size_t offset;
+	int available, xprev, line_num;
 	int *highlights;
+	char *filename;
 	char *screen;
 	gap_buffer *gb;
 
@@ -24,7 +24,8 @@ render *init_screen(char *filename);
 void free_screen(render *disp);
 
 bool screen_populate(render *disp);
-void errormsg(char *error);
+void render_screen_modeline(render *disp, WINDOW *modeline);
+void errormsg(char *error, render *disp);
 bool getinput(render *disp);
 
 size_t getcursorline(render *disp);
@@ -68,7 +69,8 @@ render *init_screen(char *filename)
 	disp = malloc(sizeof(render));
 	if (!disp) return NULL;
 
-	if (strnlen(filename, MAX_FILELEN) == 0)	// new file
+	int len = strnlen(filename, MAX_FILELEN);	// new file
+	if (len == 0)
 		disp->gb = initgapbuffer(0);
 	else
 	{
@@ -78,9 +80,13 @@ render *init_screen(char *filename)
 
 	if (!disp->gb) return NULL;			// cannot be created
 
-	disp->available = (LINES - 1)* COLS;
-	disp->offset = 0;
-	disp->xprev = 0;
+	disp->available = (LINES - 1) * COLS;
+	disp->offset = disp->xprev = disp->line_num = 0;
+
+	disp->filename = malloc(sizeof(char) * len);
+	if (len == 0)	strcpy(disp->filename, "new-file");
+	else		strcpy(disp->filename, filename);
+
 
 	disp->highlights = malloc(sizeof(int) * (disp->available + 1));
 	if (!disp->highlights) return NULL;
@@ -151,6 +157,7 @@ bool screen_populate(render *disp)
 
 enum HL_FORMATS {
 	HL_NORMALS,
+	HL_CONTROL,
 	HL_COMMENT,
 	HL_KEYWORD,
 	HL_STRINGS,
@@ -166,7 +173,8 @@ bool init_hl_formats()
 
 	start_color();					
 	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
-	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_WHITE);
+	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_WHITE);
+	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
 	init_pair(HL_KEYWORD, COLOR_BLACK, COLOR_BLACK);
 	init_pair(HL_STRINGS, COLOR_BLACK, COLOR_BLACK);
 	init_pair(HL_LITERAL, COLOR_WHITE, COLOR_BLACK);
@@ -176,56 +184,77 @@ bool init_hl_formats()
 }
 
 
-void errormsg(char *error)
+void errormsg(char *error, render *disp)
 {
+	free_screen(disp);
+	endwin();
 	printf("error: %s\n", error);
 	exit(EXIT_FAILURE);
 }
 
 enum cval {
-	backsapce = 8,
-	ctrl_n = 14,
-	ctrl_o = 15,
-	ctrl_s = 19,
-	ctrl_x = 24
+
+	CTRL_H = 8,
+	CTRL_N = 14,
+	CTRL_O = 15,
+	CTRL_S = 19,
+	CTRL_W = 23,
+	CTRL_X = 24
 };
 
+void render_screen_modeline(render *disp, WINDOW *modeline)
+{
+	mvprintw(0, 0, "%s", disp->screen);
+
+	wclear(modeline);
+	wprintw(modeline, "file: %s, line: %d, ^X quit/save ^H help", disp->filename, disp->line_num);
+
+	refresh();
+	wrefresh(modeline);
+}
 
 bool getinput(render *disp)
 {
 	int c = getch();
-	//int r;
-	//size_t line;
+	gap_buffer *gb = disp->gb;
 
 	switch (c)
 	{
-		case ctrl_x:
-			safegapfile(disp->gb, "test.txt");
+		case CTRL_X:
+			safegapfile(gb, "test.txt");
 			free_screen(disp);
 			return false;
 
 		case KEY_LEFT:
-			shift_up(disp->gb);
+			shift_up(gb);
+			disp->xprev = until_new_line(gb, -1);
 			break;
 
 		case KEY_RIGHT:
-			shift_down(disp->gb);
+			shift_down(gb);
+			disp->xprev = until_new_line(gb, -1);
 			break;
 
 		case KEY_UP:
-			shift_line(disp->gb, -1, 2);
+			if (shift_line(gb, -1, disp->xprev))
+				disp->line_num--;
+
 			break;
 
 		case KEY_DOWN:
-			shift_line(disp->gb, 1, 2);
+			if (shift_line(gb, 1, disp->xprev))
+				disp->line_num++;
 			break;
 
 		case KEY_BACKSPACE:
-			delete_c(disp->gb);
+			if (delete_c(gb) != '\0')
+				disp->xprev--;
 			break;
 
 		default: 
-			insert_c(disp->gb, c);
+			if (insert_c(gb, c))
+				disp->xprev++;
+			
 			break;
 	}
 	check_scroll(disp);
@@ -239,25 +268,30 @@ int main(int argc, char *argv[])
 	noecho();
 	keypad(stdscr, TRUE);
 
-	if (!init_hl_formats())
-		errormsg("term does not support rgb");
+	WINDOW *modeline = newwin(0, COLS, LINES-1, 0);
+	render *disp = NULL;
+
+	if (!init_hl_formats())	errormsg("term does not support rgb", disp);
+	if (!modeline) 		errormsg("cannot create modeline", disp);
 
 
-	render *disp = init_screen(argv[1]);
+	if (argc < 2)		disp = init_screen("");
+	else if (argc == 2)	disp = init_screen(argv[1]);
 
-	if (!disp)
-		errormsg("cannot create gapbuffer");
+	else			errormsg("./display 'filename'", disp);
+	if (!disp) 		errormsg("cannot create gapbuffer", disp);
+
 
 	curs_set(0);
+	bkgd(COLOR_PAIR(HL_NORMALS));
+	wbkgd(modeline, COLOR_PAIR(HL_CONTROL));
 	while (1)
 	{
 		clear();
 		screen_populate(disp);
 
-		printw("%s", disp->screen);
-
-		refresh();
-
+		render_screen_modeline(disp, modeline);
+		
 		if (!getinput(disp))
 			break;
 	}

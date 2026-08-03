@@ -50,6 +50,6 @@ int until_new_line(gap_buffer *gb, int dir);
 int until_new_word(gap_buffer *gb, int dir);	 
 
 // newline shift (up/down arrow movement)
-int shift_line(gap_buffer *gb, int dir, int xprev);
+bool shift_line(gap_buffer *gb, int dir, int xprev);
 
 #endif

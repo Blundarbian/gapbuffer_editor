@@ -125,15 +125,15 @@ bool safegapfile(gap_buffer *gb, char *filename)
 		putc(gb->buffer[cur], fp);
 		cur++;
 	}
-	
+
 	cur = end_index;
-	while (cur < gb->index)
+	while (cur <= gb->index)
 	{
 		putc(gb->buffer[cur], fp);
 		cur++;
 	}
 	fclose(fp);
-	
+
 	return true;
 }
 
@@ -173,7 +173,7 @@ char shift_up(gap_buffer *gb)
 	gb->endgap--;
 	gb->gap--;
 	*gb->endgap = *gb->gap;
-	
+
 	return eg;
 }
 
@@ -204,7 +204,7 @@ bool insert_c(gap_buffer *gb, char c)
 	*gb->gap = c;
 	gb->gap++;
 	gb->gapsize--;
-	
+
 	return true;
 }
 
@@ -225,7 +225,7 @@ bool expandbuffer(gap_buffer *gb)
 	size_t tail = oldsize - endset;		// tail of chars after realloc
 
 	memmove(gb->endgap + GAP_SIZE, gb->endgap, tail);
-	
+
 	gb->gapsize += GAP_SIZE;		
 	gb->index += GAP_SIZE;
 	gb->endgap += GAP_SIZE;
@@ -309,75 +309,106 @@ int until_new_word(gap_buffer *gb, int dir)
 }
 
 
-int shift_line(gap_buffer *gb, int dir, int xprev)
+bool shift_line(gap_buffer *gb, int dir, int xprev)
 {
-	/*
-	   size_t pos = until_new_line(gb, -1) + until_new_line(gb, 1) + 1;
-	   while (pos-- != 0)
-	   (dir > 0) ? shift_down(gb) : shift_up(gb);
-	   return 0;
-	   */
-	int prev = until_new_line(gb, -1);
-	while (prev-- != 0)
+	int n, len;
+	if (dir < 0 && gb->buffer == gb->gap) return false; // top of buffer
+
+	if (dir < 0 && can_be_up_shift(gb))
+	{
+		n = until_new_line(gb, -1);	// front of line
+		while (n-- > 0)
+			shift_up(gb);
+
+		if (!can_be_up_shift(gb))	// one over 
+			return false;
 		shift_up(gb);
 
-	if (dir < 0)
+		n = until_new_line(gb, -1);	// front of next line
+		while (n-- > 0)
+			shift_up(gb);
 
+		len = until_new_line(gb, 1);	// shift back then xprev, or line len 
+		if (xprev > len)
+			xprev = len;
 
-	return 0;
+		while (xprev-- > 0)
+			shift_down(gb);
+	}
+	else
+	{
+		if (!can_be_down_shift(gb))
+			return false;
+
+		n = until_new_line(gb, 1);		
+		while (n-- > 0)
+			shift_down(gb);
+
+		if (!can_be_down_shift(gb))
+			return false;
+		shift_down(gb);
+
+		len = until_new_line(gb, 1);	
+		if (xprev > len)
+			xprev = len;
+
+		while (xprev-- > 0)
+			shift_down(gb);
+	}
+	return true;
 }
 
 /*
-int main(int argc, char *argv[]) 
-{
-	gap_buffer *gb = NULL;
+   int main(int argc, char *argv[]) 
+   {
+   gap_buffer *gb = NULL;
 
-	if (argc == 2)
-		gb = copyfiletobuffer(argv[1]);	// load file
-	else
-		gb = initgapbuffer(0);		// no file
-	
-	if (!gb) 
-		return -1;
+   if (argc == 2)
+   gb = copyfiletobuffer(argv[1]);	// load file
+   else
+   gb = initgapbuffer(0);		// no file
 
-	int c;
-	while ((c = getchar()) != EOF)
-	{
-		printbuffer(gb, false);
-		switch (c)
-		{
-			case '1' :
-				shift_up(gb);
-				break;
-			case '2' :
-				shift_down(gb);
-				break;
-			case '3' :
-				delete_c(gb);
-				break;
-			case '4' :
-				printf("%zu\n", until_new_line(gb, 1));
-				break;
-			case '5' :
-				printf("%zu\n", until_new_word(gb, 1));
-				break;
-			case '6' :
-				printf("%d\n", safegapfile(gb, "savetest.txt"));
-				break;
-			case '7' :
-				shift_line(gb, -1);
-				break;
-			case '8' :
-				shift_line(gb, 1);
-				break;
-			default:
-				if (c != '\n')
-					insert_c(gb, c);
-				break;
-		}
-	}
+   if (!gb) 
+   return -1;
 
-	free_gap_buffer(gb);
-	return 0;
-}
-*/
+   int c;
+   while ((c = getchar()) != EOF)
+   {
+   printbuffer(gb, false);
+   switch (c)
+   {
+   case '1' :
+   shift_up(gb);
+   break;
+   case '2' :
+   shift_down(gb);
+   break;
+   case '3' :
+   delete_c(gb);
+   break;
+   case '4' :
+   printf("%zu\n", until_new_line(gb, 1));
+   break;
+   case '5' :
+   printf("%zu\n", until_new_word(gb, 1));
+   break;
+   case '6' :
+   printf("%d\n", safegapfile(gb, "savetest.txt"));
+   break;
+   case '7' :
+   shift_line(gb, -1);
+   break;
+   case '8' :
+   shift_line(gb, 1);
+   break;
+   default:
+   if (c != '\n')
+   insert_c(gb, c);
+   break;
+   }
+   }
+
+   free_gap_buffer(gb);
+   return 0;
+   }
+   */
