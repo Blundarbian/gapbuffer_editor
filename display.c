@@ -1,16 +1,17 @@
-#include <ncurses.h>	// includes stdio, unctrl, stdarg, stddef, TRUE, FALSE, OR, ERR
+#include <ncurses.h>	// stdio, unctrl, stdarg, stddef, TRUE, FALSE, OR, ERR
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "gap_buffer2.h"
 #include "display.h"
 
-#define NAME_SIZE 256
 #define MAX_FILELEN 4096
 
 typedef struct rendered_screen {
 
 	int available;
-	int screen_size;
+	int xpos;
+	size_t offset;
 	int *highlights;
 	char *screen;
 	gap_buffer *gb;
@@ -20,8 +21,45 @@ typedef struct rendered_screen {
 
 bool init_hl_formats();					// DONE : start color pairs
 render *init_screen(char *filename);
-bool screen_populate(render *disp, size_t offset);
+void free_screen(render *disp);
+
+bool screen_populate(render *disp);
 void errormsg(char *error);
+bool getinput(render *disp);
+
+size_t getcursorline(render *disp);
+void check_scroll(render *disp);
+
+
+size_t getcursorline(render *disp)
+{
+	size_t line = 0;
+	size_t pos = 0;
+	gap_buffer *gb = disp->gb;
+
+	while (pos < (size_t) (gb->gap - gb->buffer))
+	{
+		if (gb->buffer[pos] == '\n') 
+			line++;
+
+		pos++;
+	}
+
+	return line;
+}
+
+
+void check_scroll(render *disp)
+{
+	size_t cursor_line = getcursorline(disp);
+
+	if (cursor_line < disp->offset)			// scroll up 
+		disp->offset = cursor_line;
+
+	else if (cursor_line >= disp->offset + LINES)	// scroll down one
+		disp->offset = cursor_line - LINES + 1;
+}
+
 
 render *init_screen(char *filename)
 {
@@ -40,62 +78,69 @@ render *init_screen(char *filename)
 	if (!disp->gb) return NULL;			// cannot be created
 
 	disp->available = LINES * COLS;
-	disp->screen_size = 0;
 
-	disp->highlights = malloc(sizeof(int) * (disp->available));
+	disp->highlights = malloc(sizeof(int) * (disp->available + 1));
 	if (!disp->highlights) return NULL;
 
-	disp->screen = malloc(sizeof(char) * disp->available);
+	disp->screen = malloc(sizeof(char) * (disp->available + 1));
 	if (!disp->screen) return NULL;
 
 	return disp;
 }
 
 
-bool screen_populate(render *disp, size_t offset)
+void free_screen(render *disp) 
+{
+	if (!disp) return;
+	free(disp->highlights);
+	free(disp->screen);
+	free_gap_buffer(disp->gb);
+	free(disp);
+}
+
+
+bool screen_populate(render *disp)
 {
 	char *buffer = disp->gb->buffer;
 	char *gap = disp->gb->gap;
 	size_t index = disp->gb->index;
 	size_t before_gap = gap - buffer;
+	size_t offset = disp->offset;
 	char *screen = disp->screen;
 
-	int lines = LINES;
-	size_t bp = 0;
-	int sp = 0;
+	int lines = LINES;	// lines to display
+	size_t bp = 0;		// buffer pos
+	int sp = 0;		// screen pos
 	char c;
-	bool gap_skip = true;
-	bool off_skip = true;
 
-	while (lines > 0 && sp < disp->available && bp < index)	// lines to add, index range of screen buffer, index range of gap_buffer
+	while (lines > 0 && sp < disp->available && bp <= index)	// lines to add, index range of screen buffer, index range of gap_buffer
 	{
-		if (before_gap == 0 && gap_skip)	// skip gap space
+
+		if (bp == before_gap)	// skip gap space
 		{
+			screen[sp++] = '/';
 			bp += disp->gb->gapsize;
-			gap_skip = false;
+			if (bp > index) break;
+			continue;
 		}
-		else 
-			before_gap--;
 
 		c = buffer[bp];
 		if (c != '\0')
 		{
-			if (c == '\n' && offset != 0 && off_skip) 	// ignore lines until offset
-				offset--;
-
-			if (c == '\n' && offset == 0) 	// increment for each line
-				lines--;
-
-			if (offset == 0 && !off_skip) 		// any other character is added to screen buffer
-				screen[sp++] = c;			
+			if (offset > 0)
+			{
+				if (c == '\n') offset--;
+			}
+			else
+			{
+				if (c == '\n') lines--;
+				screen[sp++] = c;
+			}
 		}
 		bp++;
-		if (offset == 0)
-			off_skip = false;
-	
 	}
+
 	disp->screen[sp] = '\0';
-	disp->screen_size = sp;
 
 	return true;
 }
@@ -134,6 +179,56 @@ void errormsg(char *error)
 	exit(EXIT_FAILURE);
 }
 
+enum cval {
+	backsapce = 8,
+	ctrl_n = 14,
+	ctrl_o = 15,
+	ctrl_s = 19,
+	ctrl_x = 24
+};
+
+
+bool getinput(render *disp)
+{
+	int c = getch();
+	//int r;
+	//size_t line;
+
+	switch (c)
+	{
+		case ctrl_x:
+			safegapfile(disp->gb, "test.txt");
+			free_screen(disp);
+			return false;
+
+		case KEY_LEFT:
+			shift_up(disp->gb);
+			break;
+
+		case KEY_RIGHT:
+			shift_down(disp->gb);
+			break;
+
+		case KEY_UP:
+			shift_line(disp->gb, -1, 2);
+			break;
+
+		case KEY_DOWN:
+			shift_line(disp->gb, 1, 2);
+			break;
+
+		case KEY_BACKSPACE:
+			delete_c(disp->gb);
+			break;
+
+		default: 
+			insert_c(disp->gb, c);
+			break;
+	}
+	check_scroll(disp);
+	return true;
+}
+
 
 int main(int argc, char *argv[])
 {	
@@ -150,23 +245,19 @@ int main(int argc, char *argv[])
 	if (!disp)
 		errormsg("cannot create gapbuffer");
 
-
-	size_t offset = 0;
-	int y, x;
-
-	while (offset != disp->gb->index - disp->available)
+	curs_set(0);
+	while (1)
 	{
-	screen_populate(disp, offset);
-	printw("%s", disp->screen);
-	offset++;
+		clear();
+		screen_populate(disp);
 
-	refresh();
-	napms(50);
-	clear();
+		printw("%s", disp->screen);
+
+		refresh();
+
+		if (!getinput(disp))
+			break;
 	}
-	printw("%s", disp->screen);
-	refresh();
-	getch();
 	endwin();
 
 	return 0;

@@ -239,15 +239,14 @@ size_t until_new_line(gap_buffer *gb, int dir)
 	size_t dist= 0;
 	char *p = gb->gap;
 	char *e = gb->endgap - 1;
-	char c;
 
 	if (dir < 0)	
 	{
 		while (p > gb->buffer)
 		{
-			c = *--p;
+			p--;
 
-			if (c == '\n')
+			if (*p == '\n')
 				break;
 
 			dist++;
@@ -258,9 +257,8 @@ size_t until_new_line(gap_buffer *gb, int dir)
 	{
 		while (e < (gb->buffer + gb->index))
 		{
-			c = *++e;
-
-			if (c == '\n')
+			e++;
+			if (*e == '\n')
 				break;
 
 			dist++;
@@ -311,15 +309,12 @@ size_t until_new_word(gap_buffer *gb, int dir)
 }
 
 
-void shift_line(gap_buffer *gb, int dir)
+size_t shift_line(gap_buffer *gb, int dir, int xprev)
 {
-	size_t pos = until_new_line(gb, -1) + until_new_line (gb, 1) + 1;
-
-	while (pos != 0)
-	{
+	size_t pos = until_new_line(gb, -1) + until_new_line(gb, 1) + 1;
+	while (pos-- != 0)
 		(dir > 0) ? shift_down(gb) : shift_up(gb);
-		pos--;
-	}
+	return 0;
 }
 
 /*
