@@ -234,9 +234,9 @@ bool expandbuffer(gap_buffer *gb)
 }
 
 
-size_t until_new_line(gap_buffer *gb, int dir)
+int until_new_line(gap_buffer *gb, int dir)
 {
-	size_t dist= 0;
+	int dist= 0;
 	char *p = gb->gap;
 	char *e = gb->endgap - 1;
 
@@ -268,9 +268,9 @@ size_t until_new_line(gap_buffer *gb, int dir)
 }
 
 
-size_t until_new_word(gap_buffer *gb, int dir)
+int until_new_word(gap_buffer *gb, int dir)
 {
-	size_t dist= 0;
+	int dist= 0;
 	char *p = gb->gap;
 	char *e = gb->endgap - 1;
 	char c;
@@ -309,11 +309,21 @@ size_t until_new_word(gap_buffer *gb, int dir)
 }
 
 
-size_t shift_line(gap_buffer *gb, int dir, int xprev)
+int shift_line(gap_buffer *gb, int dir, int xprev)
 {
-	size_t pos = until_new_line(gb, -1) + until_new_line(gb, 1) + 1;
-	while (pos-- != 0)
-		(dir > 0) ? shift_down(gb) : shift_up(gb);
+	/*
+	   size_t pos = until_new_line(gb, -1) + until_new_line(gb, 1) + 1;
+	   while (pos-- != 0)
+	   (dir > 0) ? shift_down(gb) : shift_up(gb);
+	   return 0;
+	   */
+	int prev = until_new_line(gb, -1);
+	while (prev-- != 0)
+		shift_up(gb);
+
+	if (dir < 0)
+
+
 	return 0;
 }
 

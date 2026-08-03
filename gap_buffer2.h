@@ -46,10 +46,10 @@ bool insert_c(gap_buffer *gb, char c);
 bool expandbuffer(gap_buffer *gb);		
 
 // give distance until newline or word
-size_t until_new_line(gap_buffer *gb, int dir);	 
-size_t until_new_word(gap_buffer *gb, int dir);	 
+int until_new_line(gap_buffer *gb, int dir);	 
+int until_new_word(gap_buffer *gb, int dir);	 
 
 // newline shift (up/down arrow movement)
-size_t shift_line(gap_buffer *gb, int dir, int xprev);
+int shift_line(gap_buffer *gb, int dir, int xprev);
 
 #endif

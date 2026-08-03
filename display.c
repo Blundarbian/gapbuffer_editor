@@ -10,7 +10,7 @@
 typedef struct rendered_screen {
 
 	int available;
-	int xpos;
+	int xprev;
 	size_t offset;
 	int *highlights;
 	char *screen;
@@ -19,7 +19,7 @@ typedef struct rendered_screen {
 } render;
 
 
-bool init_hl_formats();					// DONE : start color pairs
+bool init_hl_formats();					
 render *init_screen(char *filename);
 void free_screen(render *disp);
 
@@ -52,12 +52,13 @@ size_t getcursorline(render *disp)
 void check_scroll(render *disp)
 {
 	size_t cursor_line = getcursorline(disp);
+	int vis = LINES - 1;
 
 	if (cursor_line < disp->offset)			// scroll up 
 		disp->offset = cursor_line;
 
-	else if (cursor_line >= disp->offset + LINES)	// scroll down one
-		disp->offset = cursor_line - LINES + 1;
+	else if (cursor_line >= disp->offset + vis)	// scroll down one
+		disp->offset = cursor_line - vis + 1;
 }
 
 
@@ -77,7 +78,9 @@ render *init_screen(char *filename)
 
 	if (!disp->gb) return NULL;			// cannot be created
 
-	disp->available = LINES * COLS;
+	disp->available = (LINES - 1)* COLS;
+	disp->offset = 0;
+	disp->xprev = 0;
 
 	disp->highlights = malloc(sizeof(int) * (disp->available + 1));
 	if (!disp->highlights) return NULL;
@@ -108,7 +111,7 @@ bool screen_populate(render *disp)
 	size_t offset = disp->offset;
 	char *screen = disp->screen;
 
-	int lines = LINES;	// lines to display
+	int lines = LINES - 1;	// lines to display
 	size_t bp = 0;		// buffer pos
 	int sp = 0;		// screen pos
 	char c;
