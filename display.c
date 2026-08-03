@@ -122,7 +122,8 @@ bool screen_populate(render *disp)
 	int sp = 0;		// screen pos
 	char c;
 
-	while (lines > 0 && sp < disp->available && bp <= index)	// lines to add, index range of screen buffer, index range of gap_buffer
+	// lines to add, index range of screen buffer, index range of gap_buffer
+	while (lines > 0 && sp < disp->available && bp <= index)
 	{
 
 		if (bp == before_gap)	// skip gap space
@@ -173,11 +174,11 @@ bool init_hl_formats()
 
 	start_color();					
 	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
-	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_WHITE);
+	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_GREEN);
 	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
-	init_pair(HL_KEYWORD, COLOR_BLACK, COLOR_BLACK);
-	init_pair(HL_STRINGS, COLOR_BLACK, COLOR_BLACK);
-	init_pair(HL_LITERAL, COLOR_WHITE, COLOR_BLACK);
+	init_pair(HL_KEYWORD, COLOR_RED, COLOR_BLACK);
+	init_pair(HL_STRINGS, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(HL_LITERAL, COLOR_CYAN, COLOR_BLACK);
 	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
 
 	return true;
@@ -197,6 +198,7 @@ enum cval {
 	CTRL_H = 8,
 	CTRL_N = 14,
 	CTRL_O = 15,
+	CTRL_Q = 17,
 	CTRL_S = 19,
 	CTRL_W = 23,
 	CTRL_X = 24
@@ -207,7 +209,7 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 	mvprintw(0, 0, "%s", disp->screen);
 
 	wclear(modeline);
-	wprintw(modeline, "file: %s, line: %d, ^X quit/save ^H help", disp->filename, disp->line_num);
+	wprintw(modeline, "file: %s, line: %d, [^W save] [^X quit] [^H help]", disp->filename, disp->line_num);
 
 	refresh();
 	wrefresh(modeline);
@@ -220,8 +222,12 @@ bool getinput(render *disp)
 
 	switch (c)
 	{
-		case CTRL_X:
+		case CTRL_W:
 			safegapfile(gb, "test.txt");
+			free_screen(disp);
+			return false;
+
+		case CTRL_X:
 			free_screen(disp);
 			return false;
 
