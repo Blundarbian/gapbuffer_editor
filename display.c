@@ -90,7 +90,7 @@ render *init_screen(char *filename)
 	else		
 		strcpy(disp->filename, filename);
 
-	disp->highlight = malloc(sizeof(int) * (disp->available + 1));
+	disp->highlight = calloc((disp->available + 1), sizeof(int));
 	if (!disp->highlight) return NULL;
 
 	disp->screen = malloc(sizeof(char) * (disp->available + 1));
@@ -188,13 +188,31 @@ bool init_hl_formats()
 
 void highlighting(render *disp)
 {
-	int incomment, instring, i;
-	incomment = instring = i = 0;
-
 	char *screen = disp->screen;
 	int *hl = disp->highlight;
 
+	char pat[] = "//";
 
+	int j, c;
+	int wlen = strlen(pat);
+	int slen = strlen(screen);
+
+	for (int i = 0; i <= slen; i++)
+	{
+		for (j = 0; j < wlen; j++)
+			if (screen[i + j] != pat[j])
+				break;
+
+		if (j == wlen)
+		{
+			for (c = i; c < slen && screen[c] != '\n'; c++)	// move and highlight until newline for comments
+				hl[c] = HL_COMMENT;
+			i = c - 1;
+		}
+
+		else 
+			hl[i] = HL_NORMALS;
+	}
 }
 
 
@@ -232,8 +250,13 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 	{
 		char c = screen[i];
 		if (hl[i] == HL_NORMALS)
+		{
+			attron(COLOR_PAIR(HL_NORMALS));
 			addch(c);
-		else if (hl[i] == HL_STRINGS)
+			attroff(COLOR_PAIR(HL_NORMALS));
+		}
+
+		else if (hl[i] == HL_COMMENT)
 		{
 			attron(COLOR_PAIR(HL_STRINGS));
 			addch(c);
