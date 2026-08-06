@@ -25,7 +25,9 @@ void free_screen(render *disp);
 
 bool screen_populate(render *disp);
 void render_screen_modeline(render *disp, WINDOW *modeline);
-void highlighting(render *disp);
+
+void highlighting(render *disp, int hlform);
+
 void errormsg(char *error, render *disp);
 bool getinput(render *disp);
 
@@ -90,7 +92,7 @@ render *init_screen(char *filename)
 	else		
 		strcpy(disp->filename, filename);
 
-	disp->highlight = calloc((disp->available + 1), sizeof(int));
+	disp->highlight = malloc(sizeof(int) * (disp->available + 1));
 	if (!disp->highlight) return NULL;
 
 	disp->screen = malloc(sizeof(char) * (disp->available + 1));
@@ -186,32 +188,58 @@ bool init_hl_formats()
 	return true;
 }
 
-void highlighting(render *disp)
+
+const char *comment_pat[] = {"/*", "*/", "//"};
+
+void highlighting(render *disp, int hlform)
 {
 	char *screen = disp->screen;
-	int *hl = disp->highlight;
+	int *hl = disp->highlight;	// default to HL_NORMAL
+	memset(hl, HL_NORMALS, sizeof(*hl) * (disp->available + 1));	
 
-	char pat[] = "//";
-
-	int j, c;
-	int wlen = strlen(pat);
-	int slen = strlen(screen);
-
-	for (int i = 0; i <= slen; i++)
+	const char **pattern;
+	int patsize = 0;
+	switch(hlform)
 	{
-		for (j = 0; j < wlen; j++)
-			if (screen[i + j] != pat[j])
-				break;
+		case HL_COMMENT:
+			patsize = sizeof(comment_pat) / sizeof(comment_pat[0]);
+			pattern = comment_pat;
+			break;
+	}
 
-		if (j == wlen)
+	int startmulti = 0, endmulti = 0;
+	for (int p = 0; p < patsize; p++) {
+
+		int j, c;
+		int plen = strlen(pattern[p]);
+		int slen = strlen(screen);
+
+		for (int i = 0; i <= slen; i++)
 		{
-			for (c = i; c < slen && screen[c] != '\n'; c++)	// move and highlight until newline for comments
-				hl[c] = HL_COMMENT;
-			i = c - 1;
-		}
+			for (j = 0; j < plen; j++)
+				if (screen[i + j] != pattern[p][j])
+					break;
 
-		else 
-			hl[i] = HL_NORMALS;
+			if (j == plen && hlform == HL_COMMENT)
+			{
+				if (p == 0) startmulti = i;
+				if (p == 1) endmulti = i + 2;
+
+				while (startmulti < endmulti)
+				{
+					hl[startmulti] = HL_COMMENT;
+					startmulti++;
+				}
+
+				if (p == 2)
+				{
+					for (c = i; c < slen && screen[c] != '\n'; c++)	// move and highlight until newline for comments
+						hl[c] = HL_COMMENT;
+					i = c - 1;
+				}
+
+			}
+		}
 	}
 }
 
@@ -372,7 +400,7 @@ int main(int argc, char *argv[])
 		clear();
 		screen_populate(disp);
 
-		highlighting(disp);
+		highlighting(disp, HL_COMMENT);
 		render_screen_modeline(disp, modeline);
 
 		if (!getinput(disp))
