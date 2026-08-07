@@ -26,7 +26,7 @@ void free_screen(render *disp);
 bool screen_populate(render *disp);
 void render_screen_modeline(render *disp, WINDOW *modeline);
 
-void highlighting(render *disp, int hlform);
+void highlighting(render *disp);
 
 void errormsg(char *error, render *disp);
 bool getinput(render *disp);
@@ -165,6 +165,7 @@ enum HL_FORMATS {
 	HL_CONTROL,
 	HL_COMMENT,
 	HL_KEYWORD,
+	HL_CTYPES,
 	HL_STRINGS,
 	HL_LITERAL,
 	HL_SEARCHS
@@ -179,9 +180,13 @@ bool init_hl_formats()
 	start_color();					
 	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
 	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_GREEN);
-	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
+
+	init_pair(HL_CTYPES, COLOR_MAGENTA, COLOR_BLACK);
 	init_pair(HL_KEYWORD, COLOR_RED, COLOR_BLACK);
+
+	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
 	init_pair(HL_STRINGS, COLOR_YELLOW, COLOR_BLACK);
+
 	init_pair(HL_LITERAL, COLOR_CYAN, COLOR_BLACK);
 	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
 
@@ -189,30 +194,32 @@ bool init_hl_formats()
 }
 
 
-const char *comment_pat[] = {"/*", "*/", "//"};
+const char *pattern[] = {
+	"int", "char", "bool", "float", "double", "long", "size_t", "void", 
+	
+	"if", "else if", "while", "do", " for ", "switch"
+};
+const int patsize = sizeof(pattern) / sizeof(pattern[0]);
 
-void highlighting(render *disp, int hlform)
+
+void highlighting(render *disp)
 {
 	char *screen = disp->screen;
+	int slen = disp->available + 1;
 	int *hl = disp->highlight;	// default to HL_NORMAL
 	memset(hl, HL_NORMALS, sizeof(*hl) * (disp->available + 1));	
 
-	const char **pattern;
-	int patsize = 0;
-	switch(hlform)
+	int p = 0;
+	while (p < slen)
 	{
-		case HL_COMMENT:
-			patsize = sizeof(comment_pat) / sizeof(comment_pat[0]);
-			pattern = comment_pat;
-			break;
+
 	}
 
-	int startmulti = 0, endmulti = 0;
+	/*
 	for (int p = 0; p < patsize; p++) {
 
 		int j, c;
 		int plen = strlen(pattern[p]);
-		int slen = strlen(screen);
 
 		for (int i = 0; i <= slen; i++)
 		{
@@ -220,27 +227,21 @@ void highlighting(render *disp, int hlform)
 				if (screen[i + j] != pattern[p][j])
 					break;
 
-			if (j == plen && hlform == HL_COMMENT)
+			if (j == plen)
 			{
-				if (p == 0) startmulti = i;
-				if (p == 1) endmulti = i + 2;
-
-				while (startmulti < endmulti)
+				for (c = i; c < plen + i; c++)	// move and highlight until newline for comments
 				{
-					hl[startmulti] = HL_COMMENT;
-					startmulti++;
-				}
+					if (p < 8 && hl[c] == HL_NORMALS)
+						hl[c] = HL_CTYPES;
+					if (p > 8 && hl[c] == HL_NORMALS)
+						hl[c] = HL_KEYWORD;
 
-				if (p == 2)
-				{
-					for (c = i; c < slen && screen[c] != '\n'; c++)	// move and highlight until newline for comments
-						hl[c] = HL_COMMENT;
-					i = c - 1;
 				}
-
+				i = c - 1;
 			}
 		}
 	}
+	*/
 }
 
 
@@ -277,18 +278,31 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 	while (screen[i] != '\0')
 	{
 		char c = screen[i];
-		if (hl[i] == HL_NORMALS)
+		switch(hl[i])
 		{
-			attron(COLOR_PAIR(HL_NORMALS));
-			addch(c);
-			attroff(COLOR_PAIR(HL_NORMALS));
-		}
+			case HL_NORMALS:
+				attron(COLOR_PAIR(HL_NORMALS));
+				addch(c);
+				attroff(COLOR_PAIR(HL_NORMALS));
+				break;
 
-		else if (hl[i] == HL_COMMENT)
-		{
-			attron(COLOR_PAIR(HL_STRINGS));
-			addch(c);
-			attroff(COLOR_PAIR(HL_STRINGS));
+			case HL_COMMENT:
+				attron(COLOR_PAIR(HL_COMMENT));
+				addch(c);
+				attroff(COLOR_PAIR(HL_COMMENT));
+				break;
+
+			case HL_CTYPES:
+				attron(COLOR_PAIR(HL_CTYPES));
+				addch(c);
+				attroff(COLOR_PAIR(HL_CTYPES));
+				break;
+	
+			case HL_KEYWORD:
+				attron(COLOR_PAIR(HL_KEYWORD));
+				addch(c);
+				attroff(COLOR_PAIR(HL_KEYWORD));
+				break;
 		}
 		i++;
 	}
@@ -400,7 +414,8 @@ int main(int argc, char *argv[])
 		clear();
 		screen_populate(disp);
 
-		highlighting(disp, HL_COMMENT);
+		highlighting(disp);
+
 		render_screen_modeline(disp, modeline);
 
 		if (!getinput(disp))
