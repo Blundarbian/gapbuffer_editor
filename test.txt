@@ -308,7 +308,7 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 	}
 
 	wclear(modeline);
-	wprintw(modeline, "file: %s, line: %d, [^W save] [^X quit] [^H help]", disp->filename, disp->line_num);
+	//wprintw(modeline, "file: %s, line: %d, [^W save] [^X quit] [^H help]", disp->filename, disp->line_num);
 
 	refresh();
 	wrefresh(modeline);
@@ -324,10 +324,8 @@ bool getinput(render *disp, WINDOW *modeline)
 	{
 		case CTRL_W:
 			wclear(modeline);
-			wprintw(modeline, "Save File <%s> Enter to safe file, or enter a file name: ", disp->filename);
-			wrefresh(modeline);
-			// TODO
-
+			wprintw(modeline, "Save File: %s (press enter to safe this file, or enter a file name: ", disp->filename);
+			getch();
 			safegapfile(gb, "test.txt");
 
 			free_screen(disp);
