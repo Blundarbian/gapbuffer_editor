@@ -114,13 +114,7 @@ void free_screen(render *disp)
 
 enum HL_FORMATS {
 	HL_NORMALS,
-	HL_CONTROL,
-	HL_COMMENT,
-	HL_KEYWORD,
-	HL_CTYPES,
-	HL_STRINGS,
-	HL_LITERAL,
-	HL_SEARCHS,
+	HL_MODELINE,
 	HL_CURSORS
 };
 
@@ -132,16 +126,7 @@ bool init_hl_formats()
 
 	start_color();					
 	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
-	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_GREEN);
-
-	init_pair(HL_CTYPES, COLOR_MAGENTA, COLOR_BLACK);
-	init_pair(HL_KEYWORD, COLOR_RED, COLOR_BLACK);
-
-	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
-	init_pair(HL_STRINGS, COLOR_YELLOW, COLOR_BLACK);
-
-	init_pair(HL_LITERAL, COLOR_CYAN, COLOR_BLACK);
-	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
+	init_pair(HL_MODELINE, COLOR_BLACK, COLOR_GREEN);
 	init_pair(HL_CURSORS, COLOR_BLACK, COLOR_MAGENTA);
 
 	return true;
@@ -203,14 +188,6 @@ bool screen_populate(render *disp)
 }
 
 
-const char *pattern[] = {
-	"int", "char", "bool", "float", "double", "long", "size_t", "void", 
-	
-	"if", "else if", "while", "do", " for ", "switch"
-};
-const int patsize = sizeof(pattern) / sizeof(pattern[0]);
-
-
 void clear_highlighting(render *disp)
 {
 	int *hl = disp->highlight;	// default to HL_NORMAL
@@ -228,7 +205,6 @@ void errormsg(char *error, render *disp)
 
 
 enum cval {
-
 	CTRL_H = 8,
 	CTRL_N = 14,
 	CTRL_O = 15,
@@ -257,24 +233,6 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 				attron(COLOR_PAIR(HL_NORMALS));
 				addch(c);
 				attroff(COLOR_PAIR(HL_NORMALS));
-				break;
-
-			case HL_COMMENT:
-				attron(COLOR_PAIR(HL_COMMENT));
-				addch(c);
-				attroff(COLOR_PAIR(HL_COMMENT));
-				break;
-
-			case HL_CTYPES:
-				attron(COLOR_PAIR(HL_CTYPES));
-				addch(c);
-				attroff(COLOR_PAIR(HL_CTYPES));
-				break;
-	
-			case HL_KEYWORD:
-				attron(COLOR_PAIR(HL_KEYWORD));
-				addch(c);
-				attroff(COLOR_PAIR(HL_KEYWORD));
 				break;
 
 			case HL_CURSORS:
@@ -401,7 +359,7 @@ int main(int argc, char *argv[])
 
 	curs_set(0);
 	bkgd(COLOR_PAIR(HL_NORMALS));
-	wbkgd(modeline, COLOR_PAIR(HL_CONTROL));
+	wbkgd(modeline, COLOR_PAIR(HL_MODELINE));
 
 	while (1)
 	{
