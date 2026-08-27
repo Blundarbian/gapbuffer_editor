@@ -26,7 +26,7 @@ void free_screen(render *disp);
 bool screen_populate(render *disp);
 void render_screen_modeline(render *disp, WINDOW *modeline);
 
-void highlighting(render *disp);
+void clear_highlighting(render *disp);
 
 void errormsg(char *error, render *disp);
 bool getinput(render *disp, WINDOW *modeline);
@@ -112,6 +112,42 @@ void free_screen(render *disp)
 }
 
 
+enum HL_FORMATS {
+	HL_NORMALS,
+	HL_CONTROL,
+	HL_COMMENT,
+	HL_KEYWORD,
+	HL_CTYPES,
+	HL_STRINGS,
+	HL_LITERAL,
+	HL_SEARCHS,
+	HL_CURSORS
+};
+
+
+bool init_hl_formats()
+{
+	if (!has_colors() || !can_change_color()) 
+		return false;
+
+	start_color();					
+	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
+	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_GREEN);
+
+	init_pair(HL_CTYPES, COLOR_MAGENTA, COLOR_BLACK);
+	init_pair(HL_KEYWORD, COLOR_RED, COLOR_BLACK);
+
+	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
+	init_pair(HL_STRINGS, COLOR_YELLOW, COLOR_BLACK);
+
+	init_pair(HL_LITERAL, COLOR_CYAN, COLOR_BLACK);
+	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
+	init_pair(HL_CURSORS, COLOR_BLACK, COLOR_MAGENTA);
+
+	return true;
+}
+
+
 bool screen_populate(render *disp)
 {
 	char *buffer = disp->gb->buffer;
@@ -132,7 +168,14 @@ bool screen_populate(render *disp)
 
 		if (bp == before_gap)	// skip gap space
 		{
-			screen[sp++] = '*';
+			if (screen[sp] ==  '\n')
+			{
+				screen[sp] = ' ';
+				disp->highlight[sp++] = HL_CURSORS;
+			}
+			else
+				disp->highlight[sp] = HL_CURSORS;
+
 			bp += disp->gb->gapsize;
 			if (bp > index) break;
 			continue;
@@ -160,40 +203,6 @@ bool screen_populate(render *disp)
 }
 
 
-enum HL_FORMATS {
-	HL_NORMALS,
-	HL_CONTROL,
-	HL_COMMENT,
-	HL_KEYWORD,
-	HL_CTYPES,
-	HL_STRINGS,
-	HL_LITERAL,
-	HL_SEARCHS
-};
-
-
-bool init_hl_formats()
-{
-	if (!has_colors() || !can_change_color()) 
-		return false;
-
-	start_color();					
-	init_pair(HL_NORMALS, COLOR_WHITE, COLOR_BLACK);	// name, text color, background
-	init_pair(HL_CONTROL, COLOR_BLACK, COLOR_GREEN);
-
-	init_pair(HL_CTYPES, COLOR_MAGENTA, COLOR_BLACK);
-	init_pair(HL_KEYWORD, COLOR_RED, COLOR_BLACK);
-
-	init_pair(HL_COMMENT, COLOR_GREEN, COLOR_BLACK);
-	init_pair(HL_STRINGS, COLOR_YELLOW, COLOR_BLACK);
-
-	init_pair(HL_LITERAL, COLOR_CYAN, COLOR_BLACK);
-	init_pair(HL_SEARCHS, COLOR_WHITE, COLOR_MAGENTA);
-
-	return true;
-}
-
-
 const char *pattern[] = {
 	"int", "char", "bool", "float", "double", "long", "size_t", "void", 
 	
@@ -202,46 +211,10 @@ const char *pattern[] = {
 const int patsize = sizeof(pattern) / sizeof(pattern[0]);
 
 
-void highlighting(render *disp)
+void clear_highlighting(render *disp)
 {
-	char *screen = disp->screen;
-	int slen = disp->available + 1;
 	int *hl = disp->highlight;	// default to HL_NORMAL
 	memset(hl, HL_NORMALS, sizeof(*hl) * (disp->available + 1));	
-
-	int p = 0;
-	while (p < slen)
-	{
-
-	}
-
-	/*
-	for (int p = 0; p < patsize; p++) {
-
-		int j, c;
-		int plen = strlen(pattern[p]);
-
-		for (int i = 0; i <= slen; i++)
-		{
-			for (j = 0; j < plen; j++)
-				if (screen[i + j] != pattern[p][j])
-					break;
-
-			if (j == plen)
-			{
-				for (c = i; c < plen + i; c++)	// move and highlight until newline for comments
-				{
-					if (p < 8 && hl[c] == HL_NORMALS)
-						hl[c] = HL_CTYPES;
-					if (p > 8 && hl[c] == HL_NORMALS)
-						hl[c] = HL_KEYWORD;
-
-				}
-				i = c - 1;
-			}
-		}
-	}
-	*/
 }
 
 
@@ -303,6 +276,11 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 				addch(c);
 				attroff(COLOR_PAIR(HL_KEYWORD));
 				break;
+
+			case HL_CURSORS:
+				attron(COLOR_PAIR(HL_CURSORS));
+				addch(c);
+				attroff(COLOR_PAIR(HL_CURSORS));
 		}
 		i++;
 	}
@@ -313,6 +291,18 @@ void render_screen_modeline(render *disp, WINDOW *modeline)
 	refresh();
 	wrefresh(modeline);
 }
+
+
+enum cval {
+
+	CTRL_H = 8,
+	CTRL_N = 14,
+	CTRL_O = 15,
+	CTRL_Q = 17,
+	CTRL_S = 19,
+	CTRL_W = 23,
+	CTRL_X = 24
+};
 
 
 bool getinput(render *disp, WINDOW *modeline)
@@ -326,7 +316,6 @@ bool getinput(render *disp, WINDOW *modeline)
 			wclear(modeline);
 			wprintw(modeline, "Save File <%s> Enter to safe file, or enter a file name: ", disp->filename);
 			wrefresh(modeline);
-			// TODO
 
 			safegapfile(gb, "test.txt");
 
@@ -419,9 +408,8 @@ int main(int argc, char *argv[])
 		clear();
 		screen_populate(disp);
 
-		//highlighting(disp);
-
 		render_screen_modeline(disp, modeline);
+		clear_highlighting(disp);
 
 		if (!getinput(disp, modeline))
 			break;
